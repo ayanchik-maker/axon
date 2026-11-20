@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FBF5F1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Axon">
 <title>Axon</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -413,19 +416,180 @@ footer.notes code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;backgro
 .alert.on{display:block}
 
 @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms !important;transition-duration:.001ms !important}}
+
+/* =====================================================================
+   APP SHELL — phone first. Chart pinned on top, modes in a bottom tab
+   bar, filters in a pull-up sheet. Desktop gets the same structure,
+   wider.
+   ===================================================================== */
+:root{
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --tabbar-h: 62px;
+}
+html{-webkit-text-size-adjust:100%}
+body{overscroll-behavior-y:none}
+button,.sw,.tabbar button,select{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+
+.wrap{max-width:760px;padding:0 14px calc(var(--tabbar-h) + var(--safe-b) + 28px)}
+
+/* ---------- top bar ---------- */
+.topbar{padding:calc(var(--safe-t) + 14px) 0 12px;display:flex;flex-direction:column;gap:12px}
+.topbar .brand{display:flex;align-items:center;justify-content:space-between}
+.topbar h1{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:30px;line-height:1;
+  letter-spacing:.06em;text-transform:uppercase;margin:0}
+.topbar .linkrow{display:flex;gap:8px}
+.topbar .linkrow .btn{flex:1 1 0;min-height:44px;padding:0 10px;font-size:13px}
+#btnBle{background:var(--cal);border-color:var(--cal)}
+#btnBle:hover{background:var(--ink);border-color:var(--ink)}
+
+/* ---------- recorder: pinned while the tools scroll beneath ---------- */
+.recorder{position:sticky;top:calc(var(--safe-t) + 4px);z-index:20;
+  box-shadow:0 1px 0 rgba(25,20,17,.06),0 14px 26px -20px rgba(25,20,17,.6)}
+#chart{height:clamp(190px,32vh,330px)}
+.chart-note{left:56px;right:70px}
+.strip{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.strip::-webkit-scrollbar{display:none}
+.cell{flex:0 0 auto;padding:8px 13px}
+.cell.bpm{order:-1;background:rgba(13,91,87,.07)}
+.cell.bpm .v{font-size:17px}
+
+/* ---------- mode header ---------- */
+.modehead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:22px 2px 12px}
+.mh-code{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;color:var(--grid-bold)}
+.mh-name{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;font-weight:600;
+  font-size:34px;line-height:1;letter-spacing:.02em}
+.modehead .btn{display:inline-flex;align-items:center;gap:7px;min-height:40px}
+.modehead .btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+
+/* ---------- channel chips scroll sideways instead of stacking ---------- */
+.chanbar{display:flex;gap:0;overflow-x:auto;margin-top:0;scroll-snap-type:x mandatory;scrollbar-width:none}
+.chanbar::-webkit-scrollbar{display:none}
+.chanbar .chan{flex:1 0 210px;scroll-snap-align:start}
+
+/* ---------- cards: one column, tighter, subtitles quieter ---------- */
+.card{margin-top:14px}
+.detect,.fatigue,.ssvep,.drowse,.focus,.edr,.gaze{margin-top:14px}
+.card > h2{padding:13px 14px;font-size:13px}
+.card .body,.detect .left,.detect .right,.fatwrap .l,.dzwrap .l,.fcwrap .l,.edrwrap .l,.gzwrap .l,.gzwrap .r,.ssvwrap .l,.ssvwrap .r{padding:14px}
+.detect .split,.fatwrap,.dzwrap,.fcwrap,.edrwrap,.gzwrap,.ssvwrap{grid-template-columns:1fr}
+.detect .left,.fatwrap .l,.dzwrap .l,.fcwrap .l,.edrwrap .l,.gzwrap .l,.ssvwrap .l{border-right:0;border-bottom:1px solid var(--rule)}
+
+/* long explanations fold to three lines; tap to read the rest */
+.howto{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;cursor:pointer;position:relative}
+.howto.open{display:block;-webkit-line-clamp:unset}
+.howto:not(.open)::after{content:"more";position:absolute;right:0;bottom:0;padding-left:28px;
+  background:linear-gradient(90deg,transparent,var(--paper) 40%);font-family:"Barlow Condensed",sans-serif;
+  text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:600;color:var(--cal)}
+
+/* verdicts are the answer, so they lead */
+.verdict .big{font-size:40px}
+.stats{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
+
+/* every control big enough for a thumb; 16px stops iOS zooming on focus */
+.btn{min-height:42px}
+.btn.sm{min-height:38px;padding:0 14px}
+select,input[type=number],input[type=text]{font-size:16px;min-height:42px}
+.sw{padding:12px 2px}
+input[type=range]{height:30px}
+input[type=range]::-webkit-slider-thumb{width:22px;height:22px;border-radius:50%;margin-top:-10px;
+  box-shadow:0 0 0 4px var(--paper)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%}
+
+footer.notes{font-size:12px}
+
+/* ---------- bottom tab bar ---------- */
+.tabbar.modes{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,1fr);
+  border:0;border-top:1px solid var(--ink);border-radius:0;overflow:visible;
+  background:rgba(251,245,241,.94);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);
+  padding:0 6px var(--safe-b)}
+.tabbar.modes button{height:var(--tabbar-h);border:0;background:transparent;color:var(--ink-faint);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;
+  font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;padding:0}
+.tabbar.modes button:hover{background:transparent;color:var(--ink-soft)}
+.tabbar.modes button svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round;margin-bottom:1px}
+.tabbar.modes .tn{font-size:12.5px;font-weight:600;letter-spacing:.1em;line-height:1}
+.tabbar.modes .tc{font-family:"IBM Plex Mono",monospace;font-size:9px;letter-spacing:.08em;opacity:.75;line-height:1}
+.tabbar.modes button[aria-pressed="true"]{color:var(--ink);background:transparent}
+.tabbar.modes button[aria-pressed="true"]::before{content:"";position:absolute;top:-1px;left:22%;right:22%;
+  height:3px;background:var(--cal)}
+.tabbar.modes button[aria-pressed="true"] svg{stroke:var(--cal)}
+.tabbar.modes button[aria-pressed="true"]:hover{background:transparent}
+
+/* ---------- signal sheet ---------- */
+.scrim{position:fixed;inset:0;z-index:50;background:rgba(25,20,17,.32);opacity:0;pointer-events:none;transition:opacity .22s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;max-height:86vh;max-height:86dvh;
+  display:flex;flex-direction:column;background:var(--paper);border-top:1px solid var(--ink);
+  border-radius:14px 14px 0 0;box-shadow:0 -18px 40px -24px rgba(25,20,17,.6);
+  transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);
+  padding-bottom:var(--safe-b)}
+.sheet.on{transform:translateY(0)}
+.grab{display:flex;justify-content:center;padding:9px 0 3px;cursor:grab;touch-action:none}
+.grab span{width:40px;height:5px;border-radius:3px;background:var(--rule)}
+.sheet-head{display:flex;align-items:center;gap:10px;padding:4px 16px 12px;border-bottom:1px solid var(--rule)}
+.sheet-head h2{margin:0;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;font-weight:600;
+  font-size:24px;letter-spacing:.04em}
+.sheet-head .chain{flex:1;min-width:0;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-faint);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet-body{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:4px 16px 24px}
+.ss{padding:14px 0 6px;border-bottom:1px solid var(--rule)}
+.ss:last-child{border-bottom:0}
+.ss h3{margin:0 0 8px;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.16em;
+  font-size:12px;font-weight:600;color:var(--ink-soft)}
+.ss #spectrum{border:1px solid var(--rule);border-radius:var(--panel-radius)}
+.ss .legend{padding:10px 0}
+.ss .actions{padding:10px 0;border-top:0}
+.ss .actions .btn{flex:1 1 auto}
+
+/* nothing should hide behind the bar */
+.alert{margin:0 0 12px}
+
+/* ---------- wider screens: same app, more room ---------- */
+@media (min-width:900px){
+  .wrap{max-width:1000px;padding-left:24px;padding-right:24px}
+  .topbar{flex-direction:row;align-items:center;justify-content:space-between}
+  .topbar .linkrow{flex:0 0 auto}
+  .topbar .linkrow .btn{flex:0 0 auto;padding:0 18px}
+  .topbar .brand{gap:22px}
+  #chart{height:360px}
+  .detect .split,.fatwrap,.dzwrap,.fcwrap,.edrwrap,.gzwrap,.ssvwrap{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
+  .detect .left,.fatwrap .l,.dzwrap .l,.fcwrap .l,.edrwrap .l,.gzwrap .l,.ssvwrap .l{border-right:1px solid var(--rule);border-bottom:0}
+  .tabbar.modes{left:50%;right:auto;transform:translateX(-50%);bottom:16px;width:440px;
+    border:1px solid var(--ink);border-radius:14px;padding:0 6px;box-shadow:0 18px 36px -24px rgba(25,20,17,.7)}
+  .sheet{left:auto;top:0;bottom:0;width:440px;max-height:none;border-radius:0;border-top:0;border-left:1px solid var(--ink);
+    transform:translateX(105%);padding-top:var(--safe-t)}
+  .sheet.on{transform:translateX(0)}
+  .grab{display:none}
+  .sheet-head{padding-top:16px}
+}
+@media (prefers-reduced-motion:reduce){.sheet,.scrim{transition:none}}
+
+/* ---------- polish pass ---------- */
+.chart-note{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;letter-spacing:.14em;top:8px}
+#chart{height:clamp(170px,27vh,300px)}
+.topbar .linkrow .btn{white-space:nowrap;font-size:12.5px;letter-spacing:.1em}
+@media (max-width:899px){
+  .card > h2 span{display:none}
+  .chanbar .chan{flex:1 0 46%;min-width:150px;position:relative;padding:10px 12px;gap:6px}
+  .chanbar .chan .pin{display:none}
+  .chanbar .chan .sw.compact{position:absolute;top:6px;right:8px;padding:0}
+  .chanbar .chan .sw.compact .txt{display:none}
+  .chanbar .chan .rd{font-size:10.5px}
+}
+@media (min-width:900px){ #chart{height:360px} }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-<header class="bar">
-  <div class="mark">
+<header class="topbar">
+  <div class="brand">
     <h1>Axon</h1>
-    <p class="tagline">Biopotential chart recorder</p>
-    <p>Up to four BioAmp EXG Pills on one ESP32-S3. The board streams raw ADC counts; filtering, spectrum and pattern detection all run here in the browser.</p>
+    <span class="lamp" id="lamp"><span class="bulb"></span><span class="silk" id="lampText">Idle</span></span>
   </div>
   <div class="linkrow">
-    <span class="lamp" id="lamp"><span class="bulb"></span><span class="silk" id="lampText">Idle</span></span>
     <button class="btn ghost" id="btnDemo">Run demo signal</button>
     <button class="btn ghost" id="btnConnect">Connect USB</button>
     <button class="btn" id="btnBle">Connect Bluetooth</button>
@@ -441,28 +605,40 @@ footer.notes code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;backgro
     <div class="clip-flag" id="clipFlag">Clipping</div>
   </div>
   <div class="strip">
-    <div class="cell"><span class="k">Sweep</span><span class="v" id="mSweep">50<small> mm/s</small></span></div>
-    <div class="cell"><span class="k">Channels</span><span class="v" id="mChans">2</span></div>
+    <div class="cell bpm" id="bpmCell" style="display:none"><span class="k">Heart rate</span><span class="v" id="mBpm">—<small> bpm</small></span></div>
     <div class="cell"><span class="k">Rate</span><span class="v" id="mRate">—<small> SPS</small></span></div>
     <div class="cell" id="linkCell" style="display:none"><span class="k">Link</span><span class="v" id="mLink">—</span></div>
     <div class="cell"><span class="k">Scale</span><span class="v" id="mScale">—<small> µV/div</small></span></div>
-    <div class="cell push bpm" id="bpmCell" style="display:none"><span class="k">Heart rate</span><span class="v" id="mBpm">—<small> bpm</small></span></div>
+    <div class="cell"><span class="k">Sweep</span><span class="v" id="mSweep">50<small> mm/s</small></span></div>
+    <div class="cell"><span class="k">Channels</span><span class="v" id="mChans">2</span></div>
   </div>
 </section>
 
+<div class="modehead">
+  <div class="mh-text">
+    <div class="mh-code" id="modeCode">EMG</div>
+    <div class="mh-name" id="modeName">Muscle</div>
+  </div>
+  <button class="btn ghost sm" id="btnSheet" aria-controls="sheet" aria-expanded="false">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+    Signal
+  </button>
+</div>
+
 <div class="chanbar" id="chanbar"></div>
 
-<div class="deck">
-
-  <section class="card">
-    <h2>Signal chain <span id="chainSummary">—</span></h2>
-    <div class="body">
-      <div class="modes" role="group" aria-label="Signal type">
-        <button data-mode="emg" aria-pressed="true">EMG</button>
-        <button data-mode="ecg" aria-pressed="false">ECG</button>
-        <button data-mode="eog" aria-pressed="false">EOG</button>
-        <button data-mode="eeg" aria-pressed="false">EEG</button>
-      </div>
+<!-- ============ SIGNAL SHEET ============ -->
+<div class="scrim" id="scrim"></div>
+<aside class="sheet" id="sheet" aria-hidden="true" aria-label="Signal settings">
+  <div class="grab" id="sheetGrab"><span></span></div>
+  <div class="sheet-head">
+    <h2>Signal</h2>
+    <span class="chain" id="chainSummary">—</span>
+    <button class="btn ghost sm" id="btnSheetClose">Done</button>
+  </div>
+  <div class="sheet-body">
+    <section class="ss">
+      <h3>Filters</h3>
       <p class="band" id="bandText"></p>
 
       <div class="dial">
@@ -501,12 +677,10 @@ footer.notes code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;backgro
         <div class="field"><label for="numScale">Fixed scale µV/div</label>
           <input type="number" id="numScale" value="200" min="1" step="10" disabled></div>
       </div>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>Spectrum <span>512-point Hann, 0.98 Hz bins</span></h2>
-    <canvas id="spectrum"></canvas>
+    </section>
+    <section class="ss">
+      <h3>Spectrum</h3>
+      <canvas id="spectrum"></canvas>
     <div class="legend">
       <i><span class="key" style="background:var(--ink)"></span> After filtering</i>
       <i><span class="key" style="background:var(--grid-bold)"></span> Raw input</i>
@@ -518,9 +692,9 @@ footer.notes code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;backgro
       <button class="btn ghost sm" id="btnFreeze">Freeze</button>
       <button class="btn ghost sm" id="btnSave">Save CSV</button>
     </div>
-  </section>
-
-</div>
+    </section>
+  </div>
+</aside>
 
 <!-- ============ DETECTION ============ -->
 <section class="card detect">
@@ -857,6 +1031,14 @@ footer.notes code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;backgro
 </footer>
 
 </div>
+
+<nav class="tabbar modes" role="tablist" aria-label="Signal type">
+  <button data-mode="emg" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h3l2-5 3 10 2-7 2 4h6"/></svg><span class="tn">Muscle</span><span class="tc">EMG</span></button>
+  <button data-mode="ecg" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M7.5 12h2l1.2-2 1.6 4 1.2-2h2"/></svg><span class="tn">Heart</span><span class="tc">ECG</span></button>
+  <button data-mode="eog" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg><span class="tn">Eyes</span><span class="tc">EOG</span></button>
+  <button data-mode="eeg" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12c1.5 0 1.5-4 3-4s1.5 8 3 8 1.5-8 3-8 1.5 8 3 8 1.5-4 3-4 1.5 2 3 2"/></svg><span class="tn">Brain</span><span class="tc">EEG</span></button>
+</nav>
+
 
 <script>
 "use strict";
@@ -3360,6 +3542,8 @@ function paintSummary(){
   if(S.harm) bits.push(S.mains*2+" Hz notch");
   if(S.env) bits.push("envelope");
   document.getElementById("chainSummary").textContent=bits.join(" → ");
+  const mc=document.getElementById("modeCode");
+  if(mc) mc.textContent=S.mode.toUpperCase()+" · "+fmtHz(S.hp)+"–"+fmtHz(S.lp)+" Hz";
   document.getElementById("oHp").textContent=fmtHz(S.hp)+" Hz";
   document.getElementById("oLp").textContent=fmtHz(S.lp)+" Hz";
 }
@@ -3623,7 +3807,7 @@ function startDemo(){
   S.running=true;S.source="demo";S.frozen=false;
   setLamp("demo","Demo signal");
   document.getElementById("chartNote").textContent=
-    "Synthetic "+PRESETS[S.mode].label.toLowerCase()+" signal — mains hum, drift and per-channel variation";
+    "Demo · synthetic "+PRESETS[S.mode].label.toLowerCase()+" signal";
   document.getElementById("btnDemo").textContent="Stop demo";
 }
 function stopDemo(){
@@ -3663,7 +3847,8 @@ function applyMode(m){
   resetFatigue();
   rebuild();showPane();
   if(S.source==="demo") document.getElementById("chartNote").textContent=
-    "Synthetic "+p.label.toLowerCase()+" signal — mains hum, drift and per-channel variation";
+    "Demo · synthetic "+p.label.toLowerCase()+" signal";
+  shellOnMode(m);
 }
 
 document.querySelectorAll(".modes button").forEach(b=>b.addEventListener("click",()=>applyMode(b.dataset.mode)));
@@ -3893,6 +4078,63 @@ document.getElementById("ssvFreqs").addEventListener("change",e=>{
 });
 
 window.addEventListener("resize",sizeCanvases);
+
+/* ======================= app shell ======================= */
+
+const MODE_NAMES={emg:"Muscle",ecg:"Heart",eog:"Eyes",eeg:"Brain"};
+function shellOnMode(m){
+  document.getElementById("modeName").textContent=MODE_NAMES[m];
+  document.getElementById("modeCode").textContent=m.toUpperCase()+" · "+fmtHz(S.hp)+"–"+fmtHz(S.lp)+" Hz";
+  // cards that were display:none have zero size until shown, so size the
+  // canvases again once the new mode's cards are laid out
+  requestAnimationFrame(sizeCanvases);
+  // keep the chart in view and bring the new mode's tools up under it
+  const mh=document.querySelector(".modehead");
+  if(window.scrollY>mh.offsetTop) window.scrollTo({top:0,behavior:"smooth"});
+}
+
+const sheet=document.getElementById("sheet"), scrim=document.getElementById("scrim");
+const btnSheet=document.getElementById("btnSheet");
+function openSheet(){
+  sheet.classList.add("on");scrim.classList.add("on");
+  sheet.setAttribute("aria-hidden","false");btnSheet.setAttribute("aria-expanded","true");
+  requestAnimationFrame(sizeCanvases);
+}
+function closeSheet(){
+  sheet.style.transform="";
+  sheet.classList.remove("on");scrim.classList.remove("on");
+  sheet.setAttribute("aria-hidden","true");btnSheet.setAttribute("aria-expanded","false");
+}
+btnSheet.addEventListener("click",openSheet);
+document.getElementById("btnSheetClose").addEventListener("click",closeSheet);
+scrim.addEventListener("click",closeSheet);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&sheet.classList.contains("on")) closeSheet(); });
+
+/* drag the grab handle down to dismiss, the way iOS sheets behave */
+(function(){
+  const grab=document.getElementById("sheetGrab");
+  let y0=null, dy=0;
+  grab.addEventListener("pointerdown",e=>{ y0=e.clientY; dy=0; sheet.style.transition="none"; grab.setPointerCapture(e.pointerId); });
+  grab.addEventListener("pointermove",e=>{
+    if(y0===null) return;
+    dy=Math.max(0,e.clientY-y0);
+    sheet.style.transform="translateY("+dy+"px)";
+  });
+  const end=()=>{
+    if(y0===null) return;
+    sheet.style.transition="";
+    if(dy>90) closeSheet(); else sheet.style.transform="";
+    y0=null;
+  };
+  grab.addEventListener("pointerup",end);
+  grab.addEventListener("pointercancel",end);
+})();
+
+/* long explanations are folded to three lines; a tap opens them */
+document.addEventListener("click",e=>{
+  const h=e.target.closest(".howto");
+  if(h&&!e.target.closest("a,button,input,select,label")) h.classList.toggle("open");
+});
 
 /* ======================= boot ======================= */
 
