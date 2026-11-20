@@ -205,6 +205,17 @@ select:focus,input[type=number]:focus,input[type=text]:focus{border-color:var(--
 .cls .x{background:transparent;border:0;color:var(--ink-faint);font-size:16px;line-height:1;padding:2px 4px}
 .cls .x:hover{color:var(--warn)}
 .empty{font-size:12.5px;color:var(--ink-faint);padding:10px 0;border-top:1px solid var(--rule)}
+.engrow{display:flex;align-items:center;gap:10px;margin-top:14px}
+.englbl{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;font-size:11px;font-weight:600;color:var(--ink-faint)}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:999px;overflow:hidden}
+.seg button{background:transparent;border:0;color:var(--ink);font:600 12.5px "Barlow Condensed",sans-serif;text-transform:uppercase;
+  letter-spacing:.1em;padding:0 14px;min-height:36px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--ink)}
+.seg button.on{background:var(--ink);color:var(--paper)}
+.mlstat{margin-top:10px;font-size:12px;color:var(--ink-soft);line-height:1.55;min-height:18px}
+.mlstat b{color:var(--ink);font-family:"IBM Plex Mono",monospace;font-weight:500}
+.mlbar{height:3px;background:var(--rule);margin-top:6px;border-radius:2px;overflow:hidden}
+.mlbar span{display:block;height:100%;background:var(--cal)}
 .rec-state{margin-top:12px;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;
   font-size:12px;font-weight:600;color:var(--warn);min-height:18px}
 
@@ -783,12 +794,12 @@ footer.notes{font-size:12px}
 
 <!-- ============ DETECTION ============ -->
 <section class="card detect">
-  <h2>Pattern detection <span id="detectSub">k-nearest-neighbour over Hudgins features, trained in this tab</span></h2>
+  <h2>Pattern detection <span id="detectSub">neural network over time-domain and AR features, trained on this device</span></h2>
   <div class="split">
     <div class="left">
 
       <div class="pane" id="paneEmgL">
-        <p class="howto">Teach it by example. Hold a posture, record three seconds, repeat for each gesture. Two or three classes at six seconds each is usually enough. Record a <b>rest</b> class too — without one, the model has to force every idle moment into a gesture. More channels around the forearm means more separable gestures.</p>
+        <p class="howto">Teach it by example. Hold a posture, record three seconds, repeat for each gesture. Record each one twice, so the second take can check the first. Record a <b>rest</b> class too — without one, the model has to force every idle moment into a gesture. A small neural network trains itself on this phone after every recording; kNN stays available to compare against. More channels around the forearm means more separable gestures.</p>
         <div class="trainrow">
           <div class="field"><label for="clsName">Gesture name</label>
             <input type="text" id="clsName" value="fist" maxlength="14"></div>
@@ -796,6 +807,14 @@ footer.notes{font-size:12px}
         </div>
         <div class="rec-state" id="recState"></div>
         <div class="classlist" id="classList"></div>
+        <div class="engrow">
+          <span class="englbl">Model</span>
+          <div class="seg" id="engSeg" role="group" aria-label="Classifier">
+            <button type="button" data-eng="nn" class="on">Neural net</button>
+            <button type="button" data-eng="knn">kNN</button>
+          </div>
+        </div>
+        <div class="mlstat" id="mlStat"></div>
         <div class="actions" style="padding:14px 0 0;margin-top:12px">
           <button class="btn sm" id="btnDetect" disabled>Start detecting</button>
           <button class="btn ghost sm" id="btnClearModel">Reset model</button>
@@ -1220,7 +1239,7 @@ const S={mode:"emg",hp:70,lp:150,mains:50,notch:true,harm:true,dc:true,env:false
   sweep:50,gain:2420,fixedScale:200,baud:460800,running:false,source:null,frozen:false,
   nch:2,specCh:0};
 
-const FEATWIN=256, FEATHOP=64, NFEAT=5;
+const FEATWIN=256, FEATHOP=64, NFEAT=5, NNF=11;
 
 function makeChannel(i){
   return {
@@ -1233,7 +1252,7 @@ function makeChannel(i){
     fftRaw:new Float32Array(NFFT),fftFilt:new Float32Array(NFFT),
     magRaw:new Float32Array(NFFT/2),magFilt:new Float32Array(NFFT/2),
     win:new Float32Array(FEATWIN),winI:0,
-    feat:new Float32Array(NFEAT),
+    feat:new Float32Array(NFEAT),nn:new Float32Array(NNF),
     // dedicated fatigue chain: 20-200 Hz + mains harmonics, independent of the display filter
     fbHp1:new Biquad(),fbHp2:new Biquad(),fbLp1:new Biquad(),fbLp2:new Biquad(),
     fbN1:new Biquad(),fbN2:new Biquad(),fbN3:new Biquad(),
@@ -1390,13 +1409,14 @@ function pushFrame(vals){
 
 function computeFeatures(){
   for(const c of CH){
-    let mav=0,wl=0,zc=0,ssc=0,sq=0;
+    let mav=0,wl=0,zc=0,ssc=0,sq=0,sd1=0,sd2=0;
     const thr=2.0;
     let prev=c.win[c.winI%FEATWIN], prevDiff=0;
     for(let n=1;n<FEATWIN;n++){
       const v=c.win[(c.winI+n)%FEATWIN];
       mav+=Math.abs(v); sq+=v*v;
-      const d=v-prev; wl+=Math.abs(d);
+      const d=v-prev; wl+=Math.abs(d); sd1+=d*d;
+      if(n>1){const dd=d-prevDiff; sd2+=dd*dd;}
       if((prev>thr&&v<-thr)||(prev<-thr&&v>thr)) zc++;
       if(n>1 && d*prevDiff<0 && (Math.abs(d)>thr||Math.abs(prevDiff)>thr)) ssc++;
       prevDiff=d; prev=v;
@@ -1406,6 +1426,23 @@ function computeFeatures(){
     c.feat[2]=zc;
     c.feat[3]=ssc;
     c.feat[4]=Math.sqrt(sq/FEATWIN);
+
+    // Richer set for the neural network. Amplitude goes in as logs, so a
+    // stronger or weaker contraction shifts it rather than stretching it, and
+    // the shape features (Hjorth, AR) don't depend on amplitude at all — they
+    // describe which motor units fire and how fast, which is what separates
+    // one gesture from another on a single channel.
+    if(!c.nn) c.nn=new Float32Array(NNF);
+    const n=FEATWIN, vx=sq/n+1e-9, v1=sd1/n+1e-9, v2=sd2/n+1e-9;
+    const mob=Math.sqrt(v1/vx), comp=Math.sqrt(v2/v1)/(mob||1);
+    c.nn[0]=Math.log(1+c.feat[0]);
+    c.nn[1]=Math.log(1+c.feat[1]);
+    c.nn[2]=zc/n*10;
+    c.nn[3]=ssc/n*10;
+    c.nn[4]=Math.log(1+c.feat[4]);
+    c.nn[5]=mob;
+    c.nn[6]=Math.min(comp,8);
+    arCoeffs(c,4,c.nn,7);
   }
   if(S.mode==="emg") emgTick();
 }
@@ -1413,6 +1450,34 @@ function currentVector(){
   const v=[];
   for(const c of CH){ if(!c.on) continue; for(let k=0;k<NFEAT;k++) v.push(c.feat[k]); }
   return v;
+}
+function nnVector(){
+  const v=[];
+  for(const c of CH){ if(!c.on||!c.nn) continue; for(let k=0;k<NNF;k++) v.push(c.nn[k]); }
+  return v;
+}
+/* Autoregressive coefficients by Levinson-Durbin — the classic TD-AR set for
+   myoelectric control. They summarise the spectral shape of the window. */
+function arCoeffs(c,order,out,off){
+  const r=new Float64Array(order+1);
+  for(let lag=0;lag<=order;lag++){
+    let s=0;
+    for(let n=lag;n<FEATWIN;n++) s+=c.win[(c.winI+n)%FEATWIN]*c.win[(c.winI+n-lag)%FEATWIN];
+    r[lag]=s;
+  }
+  const a=new Float64Array(order+1); a[0]=1;
+  let e=r[0];
+  if(!(e>1e-9)){ for(let i=0;i<order;i++) out[off+i]=0; return; }
+  for(let i=1;i<=order;i++){
+    let acc=r[i];
+    for(let j=1;j<i;j++) acc+=a[j]*r[i-j];
+    const k=-acc/e, prev=a.slice();
+    for(let j=1;j<i;j++) a[j]=prev[j]+k*prev[i-j];
+    a[i]=k;
+    e*=(1-k*k);
+    if(!(e>1e-12)) break;
+  }
+  for(let i=1;i<=order;i++) out[off+i-1]=Math.max(-4,Math.min(4,a[i]));
 }
 
 /* ======================= kNN classifier ======================= */
@@ -1423,12 +1488,16 @@ let recTarget=null, recUntil=0, probSmooth={};
 function resetClassifier(){
   MODEL.classes=[];MODEL.samples=[];MODEL.mu=null;MODEL.sd=null;MODEL.ready=false;MODEL.detecting=false;
   probSmooth={};recTarget=null;
+  NN.net=null;NN.valAcc=null;NN.knnAcc=null;NN.pending=false;NN.gen++;NN.training=false;
+  renderMlStat();
   const b=document.getElementById("btnDetect");
   if(b){b.disabled=true;b.textContent="Start detecting";}
   const r=document.getElementById("btnRecord"); if(r) r.disabled=false;
   const rs=document.getElementById("recState"); if(rs) rs.textContent="";
   renderClassList();renderBars([]);
   if(S.mode==="emg") setVerdict("Untrained","—","Record at least two classes to begin");
+  // a channel-count change wipes the live model; bring the saved one back if it fits
+  loadModel();
 }
 function fitNorm(){
   if(!MODEL.samples.length) return;
@@ -1458,14 +1527,222 @@ function classify(v){
   for(const k in score) score[k]/=tot||1;
   return {score,nearest:d[0].dist};
 }
+
+/* ======================= Neural network ======================= */
+/* A small multilayer perceptron, written out by hand so the page stays one
+   file with nothing to download. Two hidden layers (32 and 16 leaky-ReLU
+   units), softmax out, Adam, weight decay. It trains in the browser on the
+   windows recorded above — a few hundred at most, which takes well under a
+   second even on a phone.
+   With this little data the risk is memorising, so every training example is
+   jittered: the log-amplitude features get one shared random shift (the same
+   gesture held harder or softer), and everything gets a little noise. */
+
+const NN={net:null,mu:null,sd:null,dIn:0,classes:[],valAcc:null,knnAcc:null,
+  training:false,pending:false,progress:0,engine:"nn",nTrain:0,gen:0};
+const NN_HID=[32,16], NN_EPOCHS=150, NN_BATCH=16, NN_LR=0.008, NN_L2=2e-4;
+
+function randn(){let u=0;while(!u)u=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*Math.random());}
+function nnInit(dIn,K){
+  const layers=[];let prev=dIn;
+  for(const m of [...NN_HID,K]){
+    const W=new Float64Array(prev*m), s=Math.sqrt(2/prev);
+    for(let i=0;i<W.length;i++) W[i]=randn()*s;
+    layers.push({n:prev,m,W,b:new Float64Array(m),
+      mW:new Float64Array(W.length),vW:new Float64Array(W.length),mb:new Float64Array(m),vb:new Float64Array(m)});
+    prev=m;
+  }
+  return {layers,t:0};
+}
+function nnForward(net,x,keep){
+  let a=x;const acts=keep?[x]:null;const last=net.layers.length-1;
+  for(let li=0;li<=last;li++){
+    const L=net.layers[li], z=new Float64Array(L.m);
+    for(let j=0;j<L.m;j++){
+      let s=L.b[j];const o=j*L.n;
+      for(let i=0;i<L.n;i++) s+=L.W[o+i]*a[i];
+      z[j]=(li<last&&s<0)?s*0.01:s;
+    }
+    a=z;if(keep) acts.push(a);
+  }
+  let mx=-Infinity;for(let j=0;j<a.length;j++) if(a[j]>mx) mx=a[j];
+  const p=new Float64Array(a.length);let s=0;
+  for(let j=0;j<a.length;j++){p[j]=Math.exp(a[j]-mx);s+=p[j];}
+  for(let j=0;j<a.length;j++) p[j]/=s;
+  return keep?{acts,p}:p;
+}
+function nnStep(net,xs,ys){
+  const G=net.layers.map(L=>({W:new Float64Array(L.W.length),b:new Float64Array(L.m)}));
+  for(let k=0;k<xs.length;k++){
+    const f=nnForward(net,xs[k],true);
+    let delta=Float64Array.from(f.p);delta[ys[k]]-=1;
+    for(let li=net.layers.length-1;li>=0;li--){
+      const L=net.layers[li],aIn=f.acts[li],g=G[li];
+      for(let j=0;j<L.m;j++){const o=j*L.n,dj=delta[j];g.b[j]+=dj;for(let i=0;i<L.n;i++) g.W[o+i]+=dj*aIn[i];}
+      if(li>0){
+        const nd=new Float64Array(L.n);
+        for(let j=0;j<L.m;j++){const o=j*L.n,dj=delta[j];for(let i=0;i<L.n;i++) nd[i]+=L.W[o+i]*dj;}
+        for(let i=0;i<L.n;i++) if(aIn[i]<0) nd[i]*=0.01;
+        delta=nd;
+      }
+    }
+  }
+  net.t++;
+  const B=xs.length,b1=0.9,b2=0.999,c1=1-Math.pow(b1,net.t),c2=1-Math.pow(b2,net.t);
+  net.layers.forEach((L,li)=>{
+    const g=G[li];
+    for(let i=0;i<L.W.length;i++){
+      const gr=g.W[i]/B+NN_L2*L.W[i];
+      L.mW[i]=b1*L.mW[i]+(1-b1)*gr;L.vW[i]=b2*L.vW[i]+(1-b2)*gr*gr;
+      L.W[i]-=NN_LR*(L.mW[i]/c1)/(Math.sqrt(L.vW[i]/c2)+1e-8);
+    }
+    for(let j=0;j<L.m;j++){
+      const gr=g.b[j]/B;
+      L.mb[j]=b1*L.mb[j]+(1-b1)*gr;L.vb[j]=b2*L.vb[j]+(1-b2)*gr*gr;
+      L.b[j]-=NN_LR*(L.mb[j]/c1)/(Math.sqrt(L.vb[j]/c2)+1e-8);
+    }
+  });
+}
+function nnNorm(rows){
+  const d=rows[0].length,mu=new Float64Array(d),sd=new Float64Array(d);
+  for(const r of rows) for(let i=0;i<d;i++) mu[i]+=r[i];
+  for(let i=0;i<d;i++) mu[i]/=rows.length;
+  for(const r of rows) for(let i=0;i<d;i++){const e=r[i]-mu[i];sd[i]+=e*e;}
+  for(let i=0;i<d;i++) sd[i]=Math.sqrt(sd[i]/rows.length)||1;
+  return {mu,sd};
+}
+function nnStd(x,mu,sd){const z=new Float64Array(x.length);for(let i=0;i<x.length;i++) z[i]=(x[i]-mu[i])/sd[i];return z;}
+function nnAugment(x,mu,sd){
+  const a=Float64Array.from(x), shift=randn()*0.22;
+  for(let i=0;i<a.length;i++){const f=i%NNF;if(f===0||f===1||f===4) a[i]+=shift+randn()*0.05;}
+  const z=nnStd(a,mu,sd);
+  for(let i=0;i<z.length;i++) z[i]+=randn()*0.08;
+  return z;
+}
+const yieldUI=()=>new Promise(r=>setTimeout(r,0));
+async function nnFit(rows,ys,K,gen,share){
+  const {mu,sd}=nnNorm(rows), net=nnInit(rows[0].length,K), N=rows.length;
+  const idx=[...Array(N).keys()];
+  for(let ep=0;ep<NN_EPOCHS;ep++){
+    for(let i=N-1;i>0;i--){const j=(Math.random()*(i+1))|0;[idx[i],idx[j]]=[idx[j],idx[i]];}
+    for(let s=0;s<N;s+=NN_BATCH){
+      const bi=idx.slice(s,s+NN_BATCH);
+      nnStep(net,bi.map(k=>nnAugment(rows[k],mu,sd)),bi.map(k=>ys[k]));
+    }
+    if(ep%10===9){
+      NN.progress=share[0]+share[1]*(ep+1)/NN_EPOCHS;renderMlStat();
+      await yieldUI();
+      if(gen!==NN.gen) return null;
+    }
+  }
+  return {net,mu,sd};
+}
+function nnArgmax(fit,x){const p=nnForward(fit.net,nnStd(x,fit.mu,fit.sd));let b=0;for(let j=1;j<p.length;j++) if(p[j]>p[b]) b=j;return b;}
+function knnArgmax(train,mu,sd,v){
+  let best=null,bd=Infinity;
+  const d=train.map(s=>{let a=0;for(let i=0;i<v.length;i++){const e=(v[i]-s.v[i])/sd[i];a+=e*e;}return {l:s.label,d:a};})
+    .sort((a,b)=>a.d-b.d).slice(0,3);
+  const sc={};for(const nb of d){sc[nb.l]=(sc[nb.l]||0)+1/(Math.sqrt(nb.d)+0.35);}
+  for(const k in sc) if(sc[k]>(best===null?-1:sc[best])) best=k;
+  return best;
+}
+
+/* Honest accuracy: the last quarter of every gesture's windows is held back,
+   both models train on the rest, and both are scored on what they never saw.
+   Neighbouring windows overlap, so a random split would flatter both. Then the
+   network is retrained on everything for actual use. */
+async function nnTrain(){
+  if(NN.training){NN.pending=true;return;}
+  const K=MODEL.classes.length;
+  const dNow=nnVector().length, dKnn=currentVector().length;
+  const S2=MODEL.samples.filter(s=>s.n&&s.n.length===dNow&&s.v.length===dKnn&&MODEL.classes.includes(s.label));
+  const per=MODEL.classes.map(c=>S2.filter(s=>s.label===c));
+  if(K<2||per.some(p=>p.length<4)){NN.net=null;renderMlStat();return;}
+  NN.training=true;NN.progress=0;NN.pending=false;const gen=++NN.gen;renderMlStat();
+  try{
+    const tr=[],va=[];
+    for(const p of per){
+      const cut=p.length>=12?Math.floor(p.length*0.75):p.length;
+      p.forEach((s,i)=>(i<cut?tr:va).push(s));
+    }
+    let valAcc=null,knnAcc=null;
+    if(va.length){
+      const fit=await nnFit(tr.map(s=>s.n),tr.map(s=>MODEL.classes.indexOf(s.label)),K,gen,[0,0.5]);
+      if(!fit) return;
+      let ok=0;for(const s of va) if(nnArgmax(fit,s.n)===MODEL.classes.indexOf(s.label)) ok++;
+      valAcc=ok/va.length;
+      const kn=nnNorm(tr.map(s=>s.v));let ok2=0;
+      for(const s of va) if(knnArgmax(tr,kn.mu,kn.sd,s.v)===s.label) ok2++;
+      knnAcc=ok2/va.length;
+    }
+    const all=await nnFit(S2.map(s=>s.n),S2.map(s=>MODEL.classes.indexOf(s.label)),K,gen,va.length?[0.5,0.5]:[0,1]);
+    if(!all) return;
+    Object.assign(NN,{net:all.net,mu:all.mu,sd:all.sd,dIn:dNow,classes:MODEL.classes.slice(),
+      valAcc,knnAcc,nTrain:S2.length});
+    probSmooth={};
+  }finally{
+    NN.training=false;renderMlStat();
+    if(NN.pending){NN.pending=false;setTimeout(nnTrain,0);}
+  }
+}
+function nnReady(){
+  return NN.net&&NN.dIn===nnVector().length&&NN.classes.join("\u0001")===MODEL.classes.join("\u0001");
+}
+function nnScore(){
+  const p=nnForward(NN.net,nnStd(nnVector(),NN.mu,NN.sd)),sc={};
+  NN.classes.forEach((c,i)=>sc[c]=p[i]);
+  return sc;
+}
+function renderMlStat(){
+  const el=document.getElementById("mlStat");if(!el) return;
+  const pc=x=>x==null?"—":Math.round(x*100)+"%";
+  let h;
+  if(NN.training) h='Training the network on this phone… <b>'+Math.round(NN.progress*100)+'%</b>'+
+    '<div class="mlbar"><span style="width:'+(NN.progress*100).toFixed(0)+'%"></span></div>';
+  else if(NN.net&&nnReady()){
+    h='Network ready · '+NN.nTrain+' windows · '+NN.classes.length+' gestures';
+    if(NN.valAcc!=null) h+='<br>On held-back data: neural net <b>'+pc(NN.valAcc)+'</b> · kNN <b>'+pc(NN.knnAcc)+'</b>';
+    else h+='<br>Record each gesture twice to get an accuracy check.';
+  }else if(MODEL.classes.length>=2) h='Need at least 4 windows of every gesture to train the network.';
+  else h='Record two or more gestures. The network trains itself right here, nothing is uploaded.';
+  el.innerHTML=h;
+  document.querySelectorAll("#engSeg button").forEach(b=>b.classList.toggle("on",b.dataset.eng===NN.engine));
+}
+
+/* Keep the recordings across a page reload — handy on a phone, where the
+   browser drops background tabs. Only this browser keeps them. */
+const MODEL_KEY="axon.emg.model.v1";
+function saveModel(){
+  try{
+    if(!MODEL.samples.length){localStorage.removeItem(MODEL_KEY);return;}
+    const js=JSON.stringify({classes:MODEL.classes,engine:NN.engine,
+      samples:MODEL.samples.map(s=>({l:s.label,v:Array.from(s.v,x=>+x.toFixed(4)),n:s.n?Array.from(s.n,x=>+x.toFixed(4)):null}))});
+    if(js.length<3e6) localStorage.setItem(MODEL_KEY,js);
+  }catch(e){}
+}
+function loadModel(){
+  try{
+    const js=JSON.parse(localStorage.getItem(MODEL_KEY)||"null");
+    if(!js||!Array.isArray(js.samples)||!js.samples.length) return;
+    if(js.samples[0].v.length!==currentVector().length) return;   // recorded with a different channel set
+    MODEL.classes=js.classes.slice(0,12);
+    MODEL.samples=js.samples.filter(s=>MODEL.classes.includes(s.l)).map(s=>({label:s.l,v:s.v,n:s.n}));
+    if(js.engine==="knn"||js.engine==="nn") NN.engine=js.engine;
+    fitNorm();renderClassList();
+    const b=document.getElementById("btnDetect");if(b) b.disabled=!MODEL.ready;
+    if(MODEL.ready&&S.mode==="emg") setVerdict("Ready","—","Restored "+MODEL.classes.length+" gestures · press start detecting");
+    setTimeout(nnTrain,0);
+  }catch(e){}
+}
+
 function emgTick(){
   const now=performance.now();
   if(recTarget){
-    if(now<recUntil){ MODEL.samples.push({label:recTarget,v:currentVector()}); return; }
+    if(now<recUntil){ MODEL.samples.push({label:recTarget,v:currentVector(),n:nnVector()}); return; }
     recTarget=null;
     document.getElementById("recState").textContent="";
     document.getElementById("btnRecord").disabled=false;
-    fitNorm();renderClassList();
+    fitNorm();renderClassList();saveModel();nnTrain();
     document.getElementById("btnDetect").disabled=!MODEL.ready;
     if(!MODEL.detecting) setVerdict(MODEL.ready?"Ready":"Untrained","—",
       MODEL.ready?"Press start detecting":"Record at least two classes to begin");
@@ -1474,15 +1751,20 @@ function emgTick(){
   if(!MODEL.detecting) return;
   const r=classify(currentVector());
   if(!r) return;
+  // The network makes the call when it's trained; kNN's nearest-neighbour
+  // distance still acts as the "never seen anything like this" guard, since
+  // a softmax will always pick something even for a posture it never saw.
+  const useNN=NN.engine==="nn"&&nnReady();
+  const score=useNN?nnScore():r.score;
   let best="",bp=0;
-  for(const k in r.score){
-    probSmooth[k]=(probSmooth[k]||0)*0.55+r.score[k]*0.45;
+  for(const k in score){
+    probSmooth[k]=(probSmooth[k]||0)*0.55+score[k]*0.45;
     if(probSmooth[k]>bp){bp=probSmooth[k];best=k;}
   }
   renderBars(MODEL.classes.map(c=>({name:c,val:probSmooth[c]||0})).sort((a,b)=>b.val-a.val));
-  const far=r.nearest>4.5;
-  setVerdict(far?"Unrecognised":"Detected", far?"—":best.toUpperCase(),
-    (bp*100).toFixed(0)+"% · nearest distance "+r.nearest.toFixed(2));
+  const far=r.nearest>4.5, unsure=!far&&bp<0.45;
+  setVerdict(far?"Unrecognised":unsure?"Unsure":"Detected", far||unsure?"—":best.toUpperCase(),
+    (bp*100).toFixed(0)+"% · "+(useNN?"neural net":"kNN")+" · distance "+r.nearest.toFixed(2));
 }
 
 /* ======================= ECG ======================= */
@@ -3546,7 +3828,7 @@ function renderClassList(){
       if(MODEL.samples.length) fitNorm();
       MODEL.detecting=MODEL.detecting&&MODEL.ready;
       document.getElementById("btnDetect").disabled=!MODEL.ready;
-      renderClassList();renderBars([]);
+      renderClassList();renderBars([]);saveModel();nnTrain();
     });
     row.appendChild(x);el.appendChild(row);
   });
@@ -3577,7 +3859,7 @@ function logBlock(id,items){
 /* ======================= detection panes ======================= */
 
 const SUBS={
-  emg:"k-nearest-neighbour over Hudgins features, trained in this tab",
+  emg:"neural network over time-domain and AR features, trained on this device",
   ecg:"Pan-Tompkins beat detection with time-domain variability metrics",
   eog:"Threshold and duration event classifier",
   eeg:"Relative band power from the running FFT"
@@ -4024,7 +4306,13 @@ document.getElementById("btnDetect").addEventListener("click",e=>{
   e.target.textContent=MODEL.detecting?"Stop detecting":"Start detecting";
   if(!MODEL.detecting) setVerdict("Paused","—","");
 });
-document.getElementById("btnClearModel").addEventListener("click",resetClassifier);
+document.getElementById("btnClearModel").addEventListener("click",()=>{
+  try{localStorage.removeItem(MODEL_KEY);}catch(e){}
+  resetClassifier();
+});
+document.querySelectorAll("#engSeg button").forEach(b=>b.addEventListener("click",()=>{
+  NN.engine=b.dataset.eng;probSmooth={};renderMlStat();saveModel();
+}));
 
 /* ---- fatigue controls ---- */
 function buildFatPicker(){
