@@ -88,6 +88,43 @@ button{font:inherit;cursor:pointer}
 .clip-flag{position:absolute;right:12px;top:9px;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;
   letter-spacing:.16em;font-size:11px;font-weight:600;color:var(--warn);opacity:0;transition:opacity .2s;pointer-events:none}
 .clip-flag.on{opacity:1}
+.qc-flag{position:absolute;right:10px;bottom:10px;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;
+  letter-spacing:.14em;font-size:11px;font-weight:600;color:var(--ink-soft);background:var(--card);
+  border:1px solid var(--rule);border-radius:999px;padding:4px 10px;opacity:0;transition:opacity .25s;pointer-events:none}
+.qc-flag.on{opacity:1}
+.qc-flag.bad{color:var(--warn);border-color:var(--warn)}
+
+/* ---------- game ---------- */
+.game.hidden{display:none}
+#gameCv{display:block;width:100%;height:260px;background:var(--card);touch-action:manipulation;cursor:pointer}
+.gamebar{align-items:center}
+.gbest{margin-left:auto;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;
+  font-size:12px;font-weight:600;color:var(--ink-faint)}
+.gbest b{font-family:"IBM Plex Mono",monospace;font-size:16px;color:var(--ink);letter-spacing:0;margin-left:4px}
+
+/* ---------- history ---------- */
+.hbody{padding:14px}
+.hnow{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);min-height:16px}
+.hnow .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-right:7px;vertical-align:1px}
+.hchart-k{margin-top:12px;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;
+  font-size:11px;font-weight:600;color:var(--ink-faint)}
+#histCv{display:block;width:100%;height:120px;margin-top:6px}
+.hlist{margin-top:10px}
+.hrow{border-top:1px solid var(--rule)}
+.hhead{display:grid;grid-template-columns:1fr auto;gap:2px 10px;width:100%;background:transparent;border:0;color:var(--ink);
+  text-align:left;padding:10px 0 4px;cursor:pointer;font:inherit}
+.hhead .hd{font-size:13px}
+.hhead .hm{grid-column:1;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-faint)}
+.hhead .hv{grid-row:1 / span 2;grid-column:2;align-self:center;font-family:"Barlow Condensed",sans-serif;font-weight:600;
+  font-size:26px;font-variant-numeric:tabular-nums}
+.hhead .hv small{font-family:"IBM Plex Mono",monospace;font-weight:400;font-size:11px;color:var(--ink-soft);margin-left:3px}
+.htag{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.12em;font-size:10px;font-weight:600;
+  color:var(--cal);border:1px solid var(--cal);border-radius:999px;padding:0 6px;margin-left:6px}
+.spark{display:block;width:100%;height:30px;margin-bottom:8px}
+.hdet{display:none;padding:0 0 12px;font-size:12px;color:var(--ink-soft);line-height:1.6}
+.hrow.open .hdet{display:block}
+.hdet b{font-family:"IBM Plex Mono",monospace;font-weight:500;color:var(--ink)}
+.hempty{font-size:12.5px;color:var(--ink-faint);padding:12px 0;border-top:1px solid var(--rule)}
 
 .strip{display:flex;align-items:center;flex-wrap:wrap;border-top:1px solid var(--ink);background:var(--paper-deep)}
 .cell{padding:9px 16px;border-right:1px solid var(--rule);display:flex;align-items:baseline;gap:8px;min-width:0}
@@ -687,6 +724,7 @@ footer.notes{font-size:12px}
     <canvas id="chart"></canvas>
     <div class="chart-note" id="chartNote">No signal — connect the board or run the demo</div>
     <div class="clip-flag" id="clipFlag">Clipping</div>
+    <div class="qc-flag" id="qcFlag" aria-live="polite"></div>
   </div>
   <div class="strip">
     <div class="cell bpm" id="bpmCell" style="display:none"><span class="k">Heart rate</span><span class="v" id="mBpm">—<small> bpm</small></span></div>
@@ -847,6 +885,17 @@ footer.notes{font-size:12px}
       </div>
       <div class="bars" id="bars"></div>
     </div>
+  </div>
+</section>
+
+<!-- ============ GAME ============ -->
+<section class="card game" id="gameCard">
+  <h2>Muscle game <span>squeeze to fly up, relax to drop</span></h2>
+  <canvas id="gameCv" aria-label="Muscle game"></canvas>
+  <div class="actions gamebar">
+    <button class="btn sm" id="btnGamePlay">Play</button>
+    <button class="btn ghost sm" id="btnGameCal">Calibrate</button>
+    <span class="gbest">Best <b id="gBest">0</b></span>
   </div>
 </section>
 
@@ -1127,6 +1176,21 @@ footer.notes{font-size:12px}
   </div>
 </section>
 
+<!-- ============ HISTORY ============ -->
+<section class="card hist" id="histCard">
+  <h2>History <span id="histSub">sessions saved on this phone</span></h2>
+  <div class="hbody">
+    <div class="hnow" id="histNow"></div>
+    <div class="hchart-k" id="histChartK"></div>
+    <canvas id="histCv"></canvas>
+    <div class="hlist" id="histList"></div>
+  </div>
+  <div class="actions">
+    <button class="btn ghost sm" id="btnHistCsv">Export CSV</button>
+    <button class="btn ghost sm" id="btnHistClear">Clear history</button>
+  </div>
+</section>
+
 <footer class="notes">
   <p><b>Wiring more than one channel.</b> Every Pill shares the same 3V3 and GND, and every <code>REF</code> goes to the same bony landmark. Separate references per Pill make the lanes fight each other with common-mode noise. Outputs go to GPIO4–7, all on ADC1.</p>
   <p><b>Baud.</b> Four channels at 500 SPS is roughly 10 kB/s, too close to 115200 for comfort — the multi-channel sketch uses 460800, so set the same here before connecting.</p>
@@ -1253,6 +1317,10 @@ function makeChannel(i){
     magRaw:new Float32Array(NFFT/2),magFilt:new Float32Array(NFFT/2),
     win:new Float32Array(FEATWIN),winI:0,
     feat:new Float32Array(NFEAT),nn:new Float32Array(NNF),
+    // electrode check: one second of raw statistics at a time
+    qN:0,qSum:0,qSq:0,qRail:0,qI:new Float64Array(3),qQ:new Float64Array(3),
+    q:"good",qCand:"good",qCount:0,qHum:0,qStd:0,qRatio:0,
+    fenv:0,                                   // fast envelope for the game
     // dedicated fatigue chain: 20-200 Hz + mains harmonics, independent of the display filter
     fbHp1:new Biquad(),fbHp2:new Biquad(),fbLp1:new Biquad(),fbLp2:new Biquad(),
     fbN1:new Biquad(),fbN2:new Biquad(),fbN3:new Biquad(),
@@ -1351,10 +1419,20 @@ function pushFrame(vals){
     if(raw<40||raw>4055){c.clip=60;clipHold=60;} else if(c.clip>0) c.clip--;
     c.baseline+=(raw-c.baseline)*0.0008;
 
+    // Electrode check runs on the raw ADC value, before any filter: the notch
+    // would hide exactly the mains hum that gives a loose electrode away.
+    {
+      const x=raw-c.baseline, ph=2*Math.PI*S.mains*(sampleCount/FS);
+      c.qN++; c.qSum+=x; c.qSq+=x*x; if(raw<40||raw>4055) c.qRail++;
+      for(let h=0;h<3;h++){const a=ph*(h+1); c.qI[h]+=x*Math.cos(a); c.qQ[h]+=x*Math.sin(a);}
+      if(c.qN>=FS) qcEvaluate(c);
+    }
+
     let inp=raw;
     if(calRemain>0) inp+=calAmp;
 
     let y=filterOne(c,inp);
+    c.fenv+=(Math.abs(y)-c.fenv)*0.035;      // ~60 ms envelope, fast enough to steer with
     c.win[c.winI]=y; c.winI=(c.winI+1)%FEATWIN;
 
     if(S.env){
@@ -1403,6 +1481,50 @@ function pushFrame(vals){
     logRows.push(parts.join(","));
   }
   rateCount++;
+}
+
+/* ======================= electrode check ======================= */
+/* An input that isn't touching skin is an antenna. The Pill's gain turns the
+   room's mains field into a large hum at 50 Hz and its harmonics, often big
+   enough to drive the output into the rails. Skin contact through a reference
+   electrode shunts most of that away. So once a second, per channel:
+     off    output stuck at a rail, or mains hum is huge / is nearly all there is
+     flat   almost no variation at all — inputs shorted, or no power to the Pill
+     noisy  attached, but with more hum than the filters can comfortably remove
+   A state has to repeat for two seconds before it shows, so one bump of the
+   cable doesn't flash a warning. The hum is measured by correlating with sine
+   and cosine at each harmonic, exact over a whole second of 50 or 60 Hz. */
+const QC={offHum:600,noisyHum:250};
+function qcEvaluate(c){
+  // variance about this second's own mean: the slow baseline tracker can sit
+  // off-centre for a while after a jump, and that offset isn't signal
+  const N=c.qN, rail=c.qRail/N, mean=c.qSum/N, msq=Math.max(0,c.qSq/N-mean*mean), std=Math.sqrt(msq);
+  let hp=0;
+  for(let h=0;h<3;h++){const A=2*Math.hypot(c.qI[h],c.qQ[h])/N; hp+=A*A/2;}
+  const hum=Math.sqrt(hp), ratio=hp/Math.max(1e-9,msq);
+  c.qHum=hum;c.qStd=std;c.qRatio=ratio;
+  let s;
+  if(rail>0.08||hum>QC.offHum||(ratio>0.9&&hum>QC.offHum*0.5)) s="off";
+  else if(std<1.5) s="flat";
+  else if(hum>QC.noisyHum||rail>0.01) s="noisy";
+  else s="good";
+  if(s===c.qCand) c.qCount++; else {c.qCand=s;c.qCount=1;}
+  if(c.qCount>=2) c.q=s;
+  c.qN=0;c.qSum=0;c.qSq=0;c.qRail=0;c.qI.fill(0);c.qQ.fill(0);
+}
+function qcWorst(){
+  const rank={good:0,noisy:1,flat:2,off:3};
+  let w=null;
+  for(const c of CH){ if(!c.on) continue; if(!w||rank[c.q]>rank[w.q]) w=c; }
+  return w;
+}
+function qcBad(c){ return !!c&&S.running&&(c.q==="off"||c.q==="flat"); }
+function paintQc(){
+  const el=document.getElementById("qcFlag"); if(!el) return;
+  const w=S.running?qcWorst():null;
+  const txt=!w||w.q==="good"?"":"CH"+(w.i+1)+({off:" · electrodes off",flat:" · flat signal",noisy:" · mains noise"})[w.q];
+  if(el.textContent!==txt) el.textContent=txt;
+  el.className="qc-flag"+(txt?" on":"")+(w&&w.q==="off"?" bad":"");
 }
 
 /* ======================= Hudgins features ======================= */
@@ -1749,6 +1871,12 @@ function emgTick(){
     return;
   }
   if(!MODEL.detecting) return;
+  const bad=CH.find(c=>c.on&&qcBad(c));
+  if(bad){
+    setVerdict("Check electrodes","—","CH"+(bad.i+1)+" is not reading skin");
+    renderBars([]);probSmooth={};
+    return;
+  }
   const r=classify(currentVector());
   if(!r) return;
   // The network makes the call when it's trained; kNN's nearest-neighbour
@@ -2976,7 +3104,7 @@ function css(v){return getComputedStyle(document.documentElement).getPropertyVal
 
 function sizeCanvases(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
-  for(const c of [chart,spec,fTrend,fJasa,edrT,edrS,gzPad,dzT,dzB,fcT]){
+  for(const c of [chart,spec,fTrend,fJasa,edrT,edrS,gzPad,dzT,dzB,fcT,gameCv,histCv]){
     const r=c.getBoundingClientRect();
     c.width=Math.max(1,Math.round(r.width*dpr));
     c.height=Math.max(1,Math.round(r.height*dpr));
@@ -2985,6 +3113,7 @@ function sizeCanvases(){
   const r=chart.getBoundingClientRect();
   CW=r.width;CHH=r.height;
   buildGrid(dpr);
+  drawHistChart();drawSparks();
 }
 function buildGrid(dpr){
   gridCanvas.width=Math.max(1,Math.round(CW*dpr));
@@ -3949,7 +4078,7 @@ function paintStrip(){
   }
   document.getElementById("bpmCell").style.display=S.mode==="ecg"?"flex":"none";
   if(S.mode==="ecg"){
-    const m=ecgMetrics();
+    const m=qcBad(CH[0])?null:ecgMetrics();
     document.getElementById("mBpm").innerHTML=(m?m.bpm.toFixed(0):"—")+"<small> bpm</small>";
   }
   document.getElementById("clipFlag").classList.toggle("on",clipHold>0);
@@ -3991,7 +4120,10 @@ function frame(now){
     if(S.mode==="ecg"){ paintEdr(); drawEdrTrace(); drawEdrSpec(); }
     if(S.mode==="eog"){ paintGaze(); }
     paintHero();
+    paintQc();
+    sessTick();
   }
+  if(S.mode==="emg") gameTick(now);
 }
 
 /* ======================= Web Serial ======================= */
@@ -4221,6 +4353,8 @@ function applyMode(m){
   ECG.rr=[];ECG.events=[];ECG.last=-1e9;ECG.peak=0;ECG.sum=0;ECG.intBuf.fill(0);ECG.hist.fill(0);
   EOG.events=[];EOG.counts={blink:0,left:0,right:0};EOG.inEv=false;EOG.base=20;
   document.getElementById("fatigueCard").classList.toggle("hidden",m!=="emg");
+  document.getElementById("gameCard").classList.toggle("hidden",m!=="emg");
+  gameAbort();
   document.getElementById("ssvepCard").classList.toggle("hidden",m!=="eeg");
   document.getElementById("edrCard").classList.toggle("hidden",m!=="ecg");
   document.getElementById("gazeCard").classList.toggle("hidden",m!=="eog");
@@ -4235,6 +4369,7 @@ function applyMode(m){
   if(S.source==="demo") document.getElementById("chartNote").textContent=
     "Demo · synthetic "+p.label.toLowerCase()+" signal";
   shellOnMode(m);
+  renderHistory();
 }
 
 document.querySelectorAll(".modes button").forEach(b=>b.addEventListener("click",()=>applyMode(b.dataset.mode)));
@@ -4292,6 +4427,8 @@ document.getElementById("btnRecord").addEventListener("click",()=>{
   const nm=document.getElementById("clsName").value.trim().slice(0,14);
   if(!nm) return;
   if(!S.running){showAlert("Start the demo or connect the board before recording a gesture.");return;}
+  const bad=CH.find(c=>c.on&&qcBad(c));
+  if(bad){showAlert("CH"+(bad.i+1)+" doesn't look attached to skin, so this recording would teach the model mains hum. Check the electrodes first.");return;}
   hideAlert();
   if(!MODEL.classes.includes(nm)) MODEL.classes.push(nm);
   recTarget=nm;recUntil=performance.now()+3000;
@@ -4472,11 +4609,385 @@ document.getElementById("ssvFreqs").addEventListener("change",e=>{
 window.addEventListener("resize",sizeCanvases);
 
 
+/* ======================= muscle game ======================= */
+/* Proportional control, not a tap-to-flap: the bird's height IS how hard you
+   squeeze, on a log scale between your relaxed level and a firm, sustainable
+   contraction. That is the skill myoelectric prosthesis users train — holding
+   a steady intermediate level — so the game is practice, not just a toy.
+   Calibration takes the 80th percentile at rest (so rest noise reads as zero)
+   and the 70th while squeezing (so you never need a maximal effort to reach
+   the top). */
+const gameCv=document.getElementById("gameCv"), gmx=gameCv.getContext("2d");
+const GAME_KEY="axon.game.v1", CAL_REST=2.5, CAL_SQZ=3;
+const GAME={state:"idle",rest:0,max:0,calRest:0,phaseT:0,vals:[],y:0,pipes:[],score:0,best:0,
+  spawnIn:0,lastT:0,gapC:0.5,after:null,note:"",newBest:false};
+try{
+  const g=JSON.parse(localStorage.getItem(GAME_KEY)||"null");
+  if(g){GAME.best=g.best|0;if(g.rest>0&&g.max>g.rest){GAME.rest=g.rest;GAME.max=g.max;}}
+}catch(e){}
+document.getElementById("gBest").textContent=GAME.best;
+function gameSave(){try{localStorage.setItem(GAME_KEY,JSON.stringify({best:GAME.best,rest:GAME.rest,max:GAME.max}));}catch(e){}}
+function gameIsCal(){return GAME.rest>0&&GAME.max>GAME.rest;}
+function gameChan(){return CH.find(c=>c.on)||CH[0];}
+function gameLevel(){
+  const c=gameChan(); if(!c||!gameIsCal()) return 0;
+  const e=Math.max(c.fenv,GAME.rest*0.2);
+  return Math.max(0,Math.min(1,Math.log(e/GAME.rest)/Math.log(GAME.max/GAME.rest)));
+}
+function pctile(arr,p){const a=arr.slice().sort((x,y)=>x-y);return a.length?a[Math.min(a.length-1,Math.floor(p*a.length))]:0;}
+function gameStartCal(){
+  if(!S.running){showAlert("Run the demo or connect the board first, then calibrate.");return;}
+  hideAlert();
+  Object.assign(GAME,{state:"calRest",phaseT:performance.now(),vals:[],pipes:[],note:""});
+}
+function gamePlay(){
+  if(!S.running){showAlert("Run the demo or connect the board first.");return;}
+  if(!gameIsCal()){GAME.after="play";gameStartCal();return;}
+  hideAlert();
+  Object.assign(GAME,{state:"playing",pipes:[],score:0,spawnIn:0.8,gapC:0.5,after:null,note:""});
+}
+function gameAbort(){ if(GAME.state!=="over") GAME.state="idle"; GAME.pipes=[]; GAME.after=null; }
+function gameOver(){
+  GAME.state="over";
+  GAME.newBest=GAME.score>GAME.best;
+  if(GAME.newBest) GAME.best=GAME.score;
+  gameSave();
+  document.getElementById("gBest").textContent=GAME.best;
+  sessNote("Game score","pts",GAME.score);
+}
+function gameTick(now){
+  const dt=Math.min(0.05,Math.max(0,(now-(GAME.lastT||now))/1000)); GAME.lastT=now;
+  const W=gameCv.clientWidth,H=gameCv.clientHeight;
+  if(!W||!H) return;
+  const c=gameChan(), paused=!S.running||qcBad(c);
+
+  if(GAME.state==="calRest"||GAME.state==="calSqueeze"){
+    if(!S.running){GAME.state="idle";}
+    else{
+      const el=(now-GAME.phaseT)/1000;
+      if(c&&el>0.4) GAME.vals.push(c.fenv);       // skip the reaction time
+      if(GAME.state==="calRest"&&el>=CAL_REST){
+        GAME.calRest=pctile(GAME.vals,0.8);GAME.vals=[];GAME.state="calSqueeze";GAME.phaseT=now;
+      }else if(GAME.state==="calSqueeze"&&el>=CAL_SQZ){
+        const mx=pctile(GAME.vals,0.7);
+        if(GAME.calRest>0&&mx>GAME.calRest*2){
+          GAME.rest=GAME.calRest;GAME.max=mx;gameSave();
+          if(GAME.after==="play") gamePlay(); else GAME.state="ready";
+        }else{GAME.state="idle";GAME.after=null;GAME.note="Didn't see a clear squeeze — calibrate again and squeeze harder";}
+      }
+    }
+  }
+
+  const lv=gameLevel(), pad=14, r=10;
+  if(!paused) GAME.y+=(lv-GAME.y)*(1-Math.exp(-dt/0.07));
+  const yOf=l=>H-pad-r-l*(H-2*pad-2*r);
+  const bx=Math.max(48,W*0.24), by=yOf(GAME.y);
+
+  if(GAME.state==="playing"&&!paused){
+    const speed=Math.min(220,120+GAME.score*4), gap=Math.max(0.3,0.46-GAME.score*0.008), pw=42;
+    GAME.spawnIn-=dt;
+    if(GAME.spawnIn<=0){
+      GAME.spawnIn=Math.max(1.15,1.7-GAME.score*0.02);
+      GAME.gapC=Math.max(0.2,Math.min(0.8,GAME.gapC+(Math.random()*2-1)*0.4));
+      GAME.pipes.push({x:W+8,w:pw,top:yOf(GAME.gapC+gap/2)-r*1.2,bot:yOf(GAME.gapC-gap/2)+r*1.2,passed:false});
+    }
+    for(const p of GAME.pipes){
+      p.x-=speed*dt;
+      if(!p.passed&&p.x+p.w<bx-r){p.passed=true;GAME.score++;}
+      if(bx+r-2>p.x&&bx-r+2<p.x+p.w&&(by-r+2<p.top||by+r-2>p.bot)){gameOver();break;}
+    }
+    GAME.pipes=GAME.pipes.filter(p=>p.x+p.w>-10);
+  }
+  gameDraw(W,H,bx,by,r,lv,paused,now);
+}
+function gameDraw(W,H,bx,by,r,lv,paused,now){
+  const g=gmx, ink=RGB.ink;
+  g.fillStyle="rgb("+RGB.card+")";g.fillRect(0,0,W,H);
+  g.strokeStyle="rgba("+RGB.bold+",.16)";g.lineWidth=1;g.beginPath();
+  for(let y=20;y<H;y+=20){g.moveTo(0,y+.5);g.lineTo(W,y+.5);}
+  for(let x=20;x<W;x+=20){g.moveTo(x+.5,0);g.lineTo(x+.5,H);}
+  g.stroke();
+
+  g.fillStyle="rgba("+RGB.cal+",.88)";
+  for(const p of GAME.pipes){
+    g.fillRect(p.x,0,p.w,p.top);g.fillRect(p.x,p.bot,p.w,H-p.bot);
+    g.fillRect(p.x-3,p.top-10,p.w+6,10);g.fillRect(p.x-3,p.bot,p.w+6,10);
+  }
+
+  // live level meter on the left edge, so you can see what the muscle is doing
+  g.fillStyle="rgba("+ink+",.10)";g.fillRect(8,14,6,H-28);
+  g.fillStyle="rgb("+RGB.warn+")";g.fillRect(8,14+(H-28)*(1-lv),6,(H-28)*lv);
+
+  g.beginPath();g.arc(bx,by,r,0,Math.PI*2);g.fillStyle="rgb("+RGB.warn+")";g.fill();
+  g.lineWidth=1.6;g.strokeStyle="rgb("+ink+")";g.stroke();
+  g.beginPath();g.arc(bx+4,by-3,2.8,0,Math.PI*2);g.fillStyle="rgb("+RGB.paper+")";g.fill();
+  g.beginPath();g.arc(bx+4.8,by-3,1.3,0,Math.PI*2);g.fillStyle="rgb("+ink+")";g.fill();
+
+  g.textAlign="center";
+  if(GAME.state==="playing"){
+    g.fillStyle="rgba("+ink+",.9)";g.font='600 38px "Barlow Condensed", sans-serif';
+    g.fillText(String(GAME.score),W/2,46);
+  }
+
+  let lines=null,prog=null;
+  const el=(now-GAME.phaseT)/1000;
+  if(paused&&S.running) lines=["Check electrodes","Paused until CH"+((gameChan()||{i:0}).i+1)+" reads skin again"];
+  else if(!S.running) lines=["Muscle game","Run the demo or connect the board to play"];
+  else if(GAME.state==="calRest"){lines=["Relax","Let the muscle go completely"];prog=el/CAL_REST;}
+  else if(GAME.state==="calSqueeze"){lines=["Squeeze","Hold a firm squeeze you could keep up"];prog=el/CAL_SQZ;}
+  else if(GAME.state==="ready") lines=["Calibrated","Tap to play"];
+  else if(GAME.state==="over") lines=["Score "+GAME.score,GAME.newBest?"New best!":"Best "+GAME.best,"Tap to play again"];
+  else if(GAME.state==="idle") lines=GAME.note?["Try again",GAME.note]:
+    gameIsCal()?["Muscle game","Tap to play · squeeze to rise, relax to fall"]:["Muscle game","Tap to calibrate, then play"];
+  if(lines){
+    const bw=Math.min(W-40,330), bh=30+lines.length*22+(prog!=null?16:0), x0=(W-bw)/2, y0=(H-bh)/2;
+    g.fillStyle="rgba("+RGB.paper+",.9)";g.strokeStyle="rgba("+ink+",.3)";g.lineWidth=1;
+    g.beginPath();
+    if(g.roundRect) g.roundRect(x0,y0,bw,bh,10); else g.rect(x0,y0,bw,bh);
+    g.fill();g.stroke();
+    g.fillStyle="rgb("+ink+")";g.font='600 24px "Barlow Condensed", sans-serif';
+    g.fillText(lines[0].toUpperCase(),W/2,y0+32);
+    g.font='13px "IBM Plex Sans", sans-serif';g.fillStyle="rgba("+ink+",.75)";
+    for(let i=1;i<lines.length;i++) g.fillText(lines[i],W/2,y0+32+i*22);
+    if(prog!=null){
+      const px=x0+24,pw=bw-48,py=y0+bh-18;
+      g.fillStyle="rgba("+ink+",.12)";g.fillRect(px,py,pw,4);
+      g.fillStyle="rgb("+RGB.cal+")";g.fillRect(px,py,pw*Math.max(0,Math.min(1,prog)),4);
+    }
+  }
+}
+gameCv.addEventListener("click",()=>{
+  if(GAME.state==="playing"||GAME.state==="calRest"||GAME.state==="calSqueeze") return;
+  gamePlay();
+});
+document.getElementById("btnGamePlay").addEventListener("click",gamePlay);
+document.getElementById("btnGameCal").addEventListener("click",()=>{GAME.after=null;gameStartCal();});
+
+/* ======================= session history ======================= */
+/* Every stretch of signal on one tab is a session. Every two seconds it logs
+   the same number the big reading shows, plus a couple of supporting metrics
+   per tab, and skips any moment the electrode check says isn't skin. Runs
+   shorter than 20 s are dropped. Sessions live in this browser's storage,
+   thinned to 300 points per metric when they close so a few months fit. */
+const HIST_KEY="axon.sessions.v1", HIST_CUR="axon.session.cur.v1";
+let HIST=[];
+try{HIST=JSON.parse(localStorage.getItem(HIST_KEY)||"[]");if(!Array.isArray(HIST)) HIST=[];}catch(e){HIST=[];}
+const SESS={cur:null,lastT:0,lastSave:0};
+const CUMUL={"Deep focus":1,"Blinks":1};
+const CATS={"Gesture":1,"Looking":1};
+const MODE_NAME={emg:"Muscle",ecg:"Heart",eog:"Eyes",eeg:"Brain"};
+const histCv=document.getElementById("histCv"), hcx=histCv.getContext("2d");
+
+function sessPut(s,name,unit,v,t){
+  if(!Number.isFinite(v)) return;
+  const ser=s.series[name]||(s.series[name]={unit,pts:[]});
+  ser.pts.push([t,+v.toFixed(2)]);
+  if(ser.pts.length>1800) ser.pts=ser.pts.filter((_,i)=>i%2===0);
+}
+function sessNote(name,unit,v){
+  const s=SESS.cur; if(!s) return;
+  sessPut(s,name,unit,v,Math.round((Date.now()-s.t0)/1000));
+}
+function sessTick(){
+  const now=Date.now();
+  paintHistNow();
+  if(!S.running){ if(SESS.cur) sessClose(); return; }
+  const key=S.mode+"|"+S.source;
+  if(SESS.cur&&SESS.cur.key!==key) sessClose();
+  if(!SESS.cur){SESS.cur={t0:now,t1:now,mode:S.mode,src:S.source,key,series:{},cats:{},bad:0};SESS.lastT=now;}
+  if(now-SESS.lastT<2000) return;
+  SESS.lastT=now;
+  const s=SESS.cur, t=Math.round((now-s.t0)/1000);
+  s.t1=now;
+  if(qcBad(CH[0])){s.bad+=2;return;}
+  const h=HERO_LAST;
+  if(h&&h.val!=="—"&&h.lbl!=="Electrodes"&&h.lbl!=="Signal"&&h.lbl!=="No signal"){
+    if(CATS[h.lbl]){ const c=s.cats[h.lbl]||(s.cats[h.lbl]={}); c[h.val]=(c[h.val]||0)+2; }
+    else if(h.lbl!=="Eye movement"){
+      let v=NaN,unit=h.unit;
+      if(/^\d+:\d\d(:\d\d)?$/.test(h.val)){const p=h.val.split(":").map(Number);v=p.length===3?p[0]*60+p[1]+p[2]/60:p[0]+p[1]/60;unit="min";}
+      else v=parseFloat(h.val);
+      if(unit==="mVrms"){v*=1000;unit="µVrms";}
+      sessPut(s,h.lbl,unit,v,t);
+    }
+  }
+  if(S.mode==="emg"&&!(h&&h.lbl==="Muscle activity")) sessPut(s,"Muscle activity","µVrms",uv(CH[0]),t);
+  if(S.mode==="ecg"){ const k=ecgMetrics(); if(k) sessPut(s,"HRV (RMSSD)","ms",k.rmssd,t); if(EDR.ready) sessPut(s,"Breathing","/min",EDR.rate,t); }
+  if(S.mode==="eog") sessPut(s,"Blinks","count",EOG.counts.blink,t);
+  if(S.mode==="eeg"&&!(h&&h.lbl==="Alpha share")){ const b=eegBands(); if(b) sessPut(s,"Alpha share","%",b.bands[2].rel*100,t); }
+  if(now-SESS.lastSave>30000){SESS.lastSave=now;sessStash();}
+}
+function sessStash(){ if(SESS.cur) try{localStorage.setItem(HIST_CUR,JSON.stringify(SESS.cur));}catch(e){} }
+function sessClose(){
+  const s=SESS.cur; SESS.cur=null;
+  try{localStorage.removeItem(HIST_CUR);}catch(e){}
+  if(!s) return;
+  const dur=(s.t1-s.t0)/1000;
+  if(dur<20||(!Object.keys(s.series).length&&!Object.keys(s.cats).length)) return;
+  for(const k in s.series){
+    const p=s.series[k].pts;
+    if(p.length>300){const st=p.length/300;s.series[k].pts=Array.from({length:300},(_,i)=>p[Math.floor(i*st)]);}
+  }
+  delete s.key;
+  HIST.push(s);
+  while(HIST.length>150) HIST.shift();
+  histStore();renderHistory();
+}
+function histStore(){
+  for(let i=0;i<6;i++){
+    try{localStorage.setItem(HIST_KEY,JSON.stringify(HIST));return;}
+    catch(e){ if(HIST.length>5) HIST.splice(0,Math.ceil(HIST.length/4)); else return; }
+  }
+}
+addEventListener("pagehide",sessStash);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden") sessStash(); });
+
+function serStats(name,ser){
+  const v=ser.pts.map(p=>p[1]); if(!v.length) return null;
+  if(CUMUL[name]) return {avg:v[v.length-1],min:v[0],max:v[v.length-1],last:v[v.length-1]};
+  let a=0,mn=Infinity,mx=-Infinity;for(const x of v){a+=x;if(x<mn)mn=x;if(x>mx)mx=x;}
+  return {avg:a/v.length,min:mn,max:mx,last:v[v.length-1]};
+}
+const PRIMARY={emg:["Muscle activity"],ecg:["Heart rate"],eog:[],eeg:["Alertness","Alpha share","Deep focus"]};
+function primary(s){
+  const dur=(s.t1-s.t0)/60000;
+  if(s.mode==="eog"){
+    const b=s.series["Blinks"];
+    if(b&&b.pts.length) return {name:"Blink rate",unit:"/min",v:(b.pts[b.pts.length-1][1]-b.pts[0][1])/Math.max(0.1,dur),ser:b};
+    return null;
+  }
+  for(const n of PRIMARY[s.mode]||[]){const ser=s.series[n];if(ser&&ser.pts.length) return {name:n,unit:ser.unit,v:serStats(n,ser).avg,ser};}
+  const k=Object.keys(s.series)[0];
+  return k?{name:k,unit:s.series[k].unit,v:serStats(k,s.series[k]).avg,ser:s.series[k]}:null;
+}
+function fmtDur(sec){sec=Math.round(sec);if(sec<60) return sec+" s";const m=Math.floor(sec/60);return m<60?m+" min":Math.floor(m/60)+" h "+(m%60)+" min";}
+function fmtVal(v){return Math.abs(v)>=100?v.toFixed(0):Math.abs(v)>=10?v.toFixed(1):v.toFixed(2);}
+function fmtWhen(t){const d=new Date(t);
+  return d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);}
+function histDetail(s){
+  const out=[];
+  for(const k in s.series){
+    const st=serStats(k,s.series[k]),u=esc(s.series[k].unit); if(!st) continue;
+    out.push(CUMUL[k]?'<b>'+esc(k)+'</b> '+fmtVal(st.last)+' '+u+' total'
+      :'<b>'+esc(k)+'</b> avg '+fmtVal(st.avg)+' · min '+fmtVal(st.min)+' · max '+fmtVal(st.max)+' '+u);
+  }
+  for(const k in s.cats){
+    const c=s.cats[k],tot=Object.values(c).reduce((a,b)=>a+b,0)||1;
+    out.push('<b>'+esc(k)+'</b> '+Object.keys(c).sort((a,b)=>c[b]-c[a]).map(v=>esc(v.toLowerCase())+' '+Math.round(c[v]/tot*100)+'%').join(' · '));
+  }
+  if(s.bad) out.push('Electrodes off for '+fmtDur(s.bad)+' — left out');
+  return out.join('<br>')||'No readings';
+}
+function renderHistory(){
+  const list=document.getElementById("histList"); if(!list) return;
+  const L=HIST.filter(s=>s.mode===S.mode).reverse();
+  document.getElementById("histSub").textContent=MODE_NAME[S.mode]+" · "+L.length+" saved";
+  if(!L.length) list.innerHTML='<div class="hempty">Nothing saved for this tab yet. Any run of 20 seconds or more is kept automatically; demo runs are tagged.</div>';
+  else list.innerHTML=L.slice(0,25).map(s=>{
+    const p=primary(s);
+    return '<div class="hrow" data-i="'+HIST.indexOf(s)+'"><button type="button" class="hhead">'+
+      '<span class="hd">'+esc(fmtWhen(s.t0))+(s.src==="demo"?'<span class="htag">demo</span>':'')+'</span>'+
+      '<span class="hv">'+(p?fmtVal(p.v)+'<small>'+esc(p.unit)+'</small>':'—')+'</span>'+
+      '<span class="hm">'+fmtDur((s.t1-s.t0)/1000)+(p?' · '+esc(p.name.toLowerCase()):'')+'</span></button>'+
+      '<canvas class="spark"></canvas><div class="hdet">'+histDetail(s)+'</div></div>';
+  }).join("");
+  list.querySelectorAll(".hhead").forEach(b=>b.addEventListener("click",()=>b.parentElement.classList.toggle("open")));
+  drawHistChart();drawSparks();
+}
+function paintHistNow(){
+  const el=document.getElementById("histNow"); if(!el) return;
+  const s=SESS.cur;
+  let h;
+  if(s&&s.mode===S.mode){
+    const d=(Date.now()-s.t0)/1000, m=Math.floor(d/60), sec=Math.floor(d%60);
+    h='<span class="dot"></span>Recording this session · '+m+':'+String(sec).padStart(2,"0")+(d<20?' · kept after 20 s':'');
+  }else h=S.running?'':'Sessions save themselves while a signal is running.';
+  if(el.innerHTML!==h) el.innerHTML=h;
+}
+function drawSparks(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  document.querySelectorAll("#histList .hrow").forEach(row=>{
+    const s=HIST[+row.dataset.i], cv=row.querySelector(".spark"); if(!s||!cv) return;
+    const W=cv.clientWidth,H=cv.clientHeight; if(!W) return;
+    cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
+    const g=cv.getContext("2d");g.setTransform(dpr,0,0,dpr,0,0);
+    const p=primary(s); if(!p||p.ser.pts.length<2) return;
+    const pts=p.ser.pts, t1=pts[pts.length-1][0]||1;
+    let mn=Infinity,mx=-Infinity;for(const q of pts){if(q[1]<mn)mn=q[1];if(q[1]>mx)mx=q[1];}
+    if(mx-mn<1e-9){mx+=1;mn-=1;}
+    g.strokeStyle="rgb("+RGB.cal+")";g.lineWidth=1.5;g.lineJoin="round";g.beginPath();
+    pts.forEach((q,i)=>{const x=q[0]/t1*(W-2)+1,y=H-3-(q[1]-mn)/(mx-mn)*(H-6);i?g.lineTo(x,y):g.moveTo(x,y);});
+    g.stroke();
+  });
+}
+function drawHistChart(){
+  const W=histCv.clientWidth,H=histCv.clientHeight; if(!W||!H) return;
+  const g=hcx;g.clearRect(0,0,W,H);
+  const L=HIST.filter(s=>s.mode===S.mode).map(s=>({s,p:primary(s)})).filter(x=>x.p);
+  const key=document.getElementById("histChartK");
+  if(!L.length){key.textContent="";histCv.style.display="none";return;}
+  histCv.style.display="block";
+  const cnt={};for(const x of L) cnt[x.p.name]=(cnt[x.p.name]||0)+1;
+  const name=Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
+  const unit=(L.find(x=>x.p.name===name)||{p:{unit:""}}).p.unit;
+  key.textContent="Daily average · "+name.toLowerCase()+(unit?" ("+unit+")":"")+" · last 14 days";
+  const day0=new Date();day0.setHours(0,0,0,0);
+  const days=[];for(let i=13;i>=0;i--) days.push({t:day0.getTime()-i*864e5,w:0,sum:0});
+  for(const x of L){
+    if(x.p.name!==name) continue;
+    const d=new Date(x.s.t0);d.setHours(0,0,0,0);
+    const slot=days.find(z=>z.t===d.getTime()); if(!slot) continue;
+    const w=Math.max(1,(x.s.t1-x.s.t0)/1000);slot.w+=w;slot.sum+=x.p.v*w;
+  }
+  const vals=days.map(z=>z.w?z.sum/z.w:null), mx=Math.max(1e-9,...vals.filter(v=>v!=null));
+  const bw=W/14, top=16, base=H-16;
+  g.font='10px "IBM Plex Mono", monospace';g.textAlign="center";
+  days.forEach((z,i)=>{
+    const x=i*bw, v=vals[i];
+    g.fillStyle="rgba("+RGB.ink+",.45)";
+    g.fillText(String(new Date(z.t).getDate()),x+bw/2,H-3);
+    if(v==null){g.fillStyle="rgba("+RGB.ink+",.08)";g.fillRect(x+bw*0.2,base-2,bw*0.6,2);return;}
+    const h=Math.max(2,(Math.max(0,v)/mx)*(base-top));
+    g.fillStyle="rgba("+RGB.cal+","+(i===13?"1":".7")+")";g.fillRect(x+bw*0.18,base-h,bw*0.64,h);
+    g.fillStyle="rgb("+RGB.ink+")";g.fillText(fmtVal(v),x+bw/2,base-h-4);
+  });
+}
+function csvq(s){return '"'+String(s).replace(/"/g,'""')+'"';}
+document.getElementById("btnHistCsv").addEventListener("click",()=>{
+  if(!HIST.length){showAlert("No saved sessions to export yet.");return;}
+  const rows=["session_start,mode,source,duration_s,metric,unit,t_s,value"];
+  for(const s of HIST){
+    const pre=[new Date(s.t0).toISOString(),s.mode,s.src,Math.round((s.t1-s.t0)/1000)];
+    for(const k in s.series){const ser=s.series[k];for(const p of ser.pts) rows.push([...pre,csvq(k),csvq(ser.unit),p[0],p[1]].join(","));}
+    for(const k in s.cats) for(const v in s.cats[k]) rows.push([...pre,csvq(k+": "+v),"s","",s.cats[k][v]].join(","));
+  }
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([rows.join("\n")],{type:"text/csv"}));
+  a.download="axon-history-"+new Date().toISOString().slice(0,10)+".csv";
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+});
+let histClearArm=0;
+document.getElementById("btnHistClear").addEventListener("click",e=>{
+  const b=e.currentTarget;
+  if(Date.now()-histClearArm<3000){
+    HIST=[];histStore();renderHistory();histClearArm=0;b.textContent="Clear history";return;
+  }
+  histClearArm=Date.now();b.textContent="Tap again to clear";
+  setTimeout(()=>{if(Date.now()-histClearArm>=2900){histClearArm=0;b.textContent="Clear history";}},3000);
+});
+// a session the browser cut off (tab closed, phone locked) is finished on the next visit
+try{const c=JSON.parse(localStorage.getItem(HIST_CUR)||"null");if(c&&c.t0&&c.series){SESS.cur=c;sessClose();}}catch(e){}
+
 /* ======================= big live reading ======================= */
 
 let heroBeat=-1;
+let HERO_LAST=null;
 function setHero(lbl,val,unit,sub,meter,tone){
   const h=document.getElementById("hero");
+  HERO_LAST={lbl,val:String(val),unit:unit||""};
+  if(S.running&&CH[0]&&CH[0].q==="noisy"&&tone!=="alert") sub=(sub?sub+" · ":"")+"mains noise";
   document.getElementById("hLbl").textContent=lbl;
   document.getElementById("hVal").textContent=val;
   document.getElementById("hUnit").textContent=unit||"";
@@ -4493,6 +5004,16 @@ function uv(c){ return c? c.rms*uvPerCount()*1000 : 0; }
 function paintHero(){
   if(!S.running){ setHero("No signal","—","","Connect the board or run the demo",null,"idle"); return; }
   const m=S.mode, c0=CH[0];
+
+  // no reading is better than a confident number computed from mains hum
+  if(c0&&c0.q==="off"){
+    setHero("Electrodes","Check","","CH1 hears mostly mains hum — press the pads onto skin and connect REF",null,"alert");
+    return;
+  }
+  if(c0&&c0.q==="flat"){
+    setHero("Signal","Flat","","CH1 isn't moving — inputs shorted together, or the Pill has no power",null,"idle");
+    return;
+  }
 
   if(m==="emg"){
     const r = FAT.running ? fatRegression() : null;
