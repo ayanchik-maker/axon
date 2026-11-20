@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#FBF5F1">
+<meta name="theme-color" content="#FBF5F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121010" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Axon">
 <title>Axon</title>
@@ -29,7 +31,7 @@
   --pen3: #0D5B57;
   --pen4: #4A3B86;
 
-  --rule: rgba(25,20,17,.16);
+  --rule: rgba(var(--ink-rgb),.16);
   --panel-radius: 2px;
 }
 
@@ -40,8 +42,8 @@ body{
   font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;line-height:1.5;
   -webkit-font-smoothing:antialiased;
   background-image:
-    radial-gradient(circle at 12% -10%, rgba(222,145,121,.10), transparent 55%),
-    radial-gradient(circle at 92% 4%,  rgba(13,91,87,.06),  transparent 45%);
+    radial-gradient(circle at 12% -10%, rgba(var(--bold-rgb),.10), transparent 55%),
+    radial-gradient(circle at 92% 4%,  rgba(var(--cal-rgb),.06),  transparent 45%);
 }
 .num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
 .silk{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;font-weight:600;font-size:12px;color:var(--ink-soft)}
@@ -72,13 +74,13 @@ button{font:inherit;cursor:pointer}
 
 .lamp{display:inline-flex;align-items:center;gap:8px}
 .lamp .bulb{width:9px;height:9px;border-radius:50%;background:var(--ink-faint);box-shadow:0 0 0 3px rgba(162,149,138,.18)}
-.lamp.live .bulb{background:var(--cal);box-shadow:0 0 0 3px rgba(13,91,87,.2);animation:pulse 1.6s infinite}
-.lamp.demo .bulb{background:var(--grid-bold);box-shadow:0 0 0 3px rgba(222,145,121,.22)}
-@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(13,91,87,0)}}
+.lamp.live .bulb{background:var(--cal);box-shadow:0 0 0 3px rgba(var(--cal-rgb),.2);animation:pulse 1.6s infinite}
+.lamp.demo .bulb{background:var(--grid-bold);box-shadow:0 0 0 3px rgba(var(--bold-rgb),.22)}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(var(--cal-rgb),0)}}
 
 /* ---------- recorder ---------- */
 .recorder{border:1px solid var(--ink);border-radius:var(--panel-radius);background:var(--paper-deep);overflow:hidden;
-  box-shadow:0 1px 0 rgba(25,20,17,.06), 0 18px 40px -30px rgba(25,20,17,.55)}
+  box-shadow:0 1px 0 rgba(var(--ink-rgb),.06), 0 18px 40px -30px rgba(var(--ink-rgb),.55)}
 .chartbox{position:relative;background:var(--card)}
 #chart{display:block;width:100%;height:380px}
 .chart-note{position:absolute;left:56px;top:9px;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;
@@ -98,7 +100,7 @@ button{font:inherit;cursor:pointer}
 
 /* ---------- channel bar ---------- */
 .chanbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0;margin-top:22px;
-  border:1px solid var(--rule);border-radius:var(--panel-radius);background:rgba(255,252,250,.6);overflow:hidden}
+  border:1px solid var(--rule);border-radius:var(--panel-radius);background:rgba(var(--card-rgb),.6);overflow:hidden}
 .chan{padding:12px 14px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:8px}
 .chan:last-child{border-right:0}
 .chan.off{opacity:.42}
@@ -127,7 +129,7 @@ button{font:inherit;cursor:pointer}
   .rowset{grid-template-columns:1fr}
   .targets{grid-template-columns:1fr 1fr}
 }
-.card{border:1px solid var(--rule);border-radius:var(--panel-radius);background:rgba(255,252,250,.6)}
+.card{border:1px solid var(--rule);border-radius:var(--panel-radius);background:rgba(var(--card-rgb),.6)}
 .card > h2{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.16em;font-size:12px;font-weight:600;
   color:var(--ink-soft);margin:0;padding:12px 16px;border-bottom:1px solid var(--rule);
   display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -266,7 +268,7 @@ select:focus,input[type=number]:focus,input[type=text]:focus{border-color:var(--
 .ssvwrap .r{padding:16px}
 
 .warnbox{border:1px solid var(--warn);border-left-width:3px;border-radius:var(--panel-radius);
-  padding:12px 14px;background:rgba(166,46,24,.05);margin-bottom:14px}
+  padding:12px 14px;background:rgba(var(--warn-rgb),.05);margin-bottom:14px}
 .warnbox h4{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;
   font-size:11px;font-weight:600;color:var(--warn);margin:0 0 6px}
 .warnbox p{margin:0 0 9px;font-size:12.5px;line-height:1.5;color:var(--ink-soft)}
@@ -316,7 +318,7 @@ select:focus,input[type=number]:focus,input[type=text]:focus{border-color:var(--
 .gauge .track span{display:block;height:100%;width:0;transition:width .25s linear}
 .gauge .track i{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--ink);opacity:.45}
 .gauge .sub{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin-top:7px}
-.gauge.alert{border-color:var(--warn);background:rgba(166,46,24,.06)}
+.gauge.alert{border-color:var(--warn);background:rgba(var(--warn-rgb),.06)}
 .gauge.alert .big{color:var(--warn)}
 
 .blinkpip{display:flex;gap:3px;flex-wrap:wrap;margin-top:12px;min-height:16px}
@@ -339,7 +341,7 @@ select:focus,input[type=number]:focus,input[type=text]:focus{border-color:var(--
 .bigclock .clk{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:46px;
   line-height:1.05;margin:3px 0 2px;font-variant-numeric:tabular-nums}
 .bigclock .sub{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft)}
-.bigclock.deep{border-color:var(--cal);background:rgba(13,91,87,.06)}
+.bigclock.deep{border-color:var(--cal);background:rgba(var(--cal-rgb),.06)}
 .bigclock.deep .clk{color:var(--cal)}
 
 .sessrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
@@ -388,10 +390,10 @@ select:focus,input[type=number]:focus,input[type=text]:focus{border-color:var(--
   position:relative;z-index:2;margin-top:2px}
 .mi .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--cal);opacity:.18;z-index:1}
 .mi.on{border-color:var(--cal)}
-.mi.picked{border-color:var(--warn);background:rgba(166,46,24,.07)}
+.mi.picked{border-color:var(--warn);background:rgba(var(--warn-rgb),.07)}
 
 .calstep{margin-top:14px;padding:13px 14px;border:1px solid var(--cal);border-radius:var(--panel-radius);
-  background:rgba(13,91,87,.05);display:none}
+  background:rgba(var(--cal-rgb),.05);display:none}
 .calstep.on{display:block}
 .calstep .cs{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;
   font-size:11px;font-weight:600;color:var(--cal);margin-bottom:5px}
@@ -412,7 +414,7 @@ select:focus,input[type=number]:focus,input[type=text]:focus{border-color:var(--
 footer.notes{margin-top:34px;padding-top:18px;border-top:1px solid var(--rule);color:var(--ink-soft);font-size:12.5px}
 footer.notes p{margin:0 0 8px;max-width:80ch}
 footer.notes code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;background:var(--paper-deep);padding:1px 5px;border-radius:2px}
-.alert{margin:0 0 16px;padding:11px 14px;border-left:3px solid var(--warn);background:rgba(166,46,24,.06);font-size:13px;display:none}
+.alert{margin:0 0 16px;padding:11px 14px;border-left:3px solid var(--warn);background:rgba(var(--warn-rgb),.06);font-size:13px;display:none}
 .alert.on{display:block}
 
 @media (prefers-reduced-motion:reduce){*{animation-duration:.001ms !important;transition-duration:.001ms !important}}
@@ -445,13 +447,13 @@ button,.sw,.tabbar button,select{touch-action:manipulation;-webkit-tap-highlight
 
 /* ---------- recorder: pinned while the tools scroll beneath ---------- */
 .recorder{position:sticky;top:calc(var(--safe-t) + 4px);z-index:20;
-  box-shadow:0 1px 0 rgba(25,20,17,.06),0 14px 26px -20px rgba(25,20,17,.6)}
+  box-shadow:0 1px 0 rgba(var(--ink-rgb),.06),0 14px 26px -20px rgba(var(--ink-rgb),.6)}
 #chart{height:clamp(190px,32vh,330px)}
 .chart-note{left:56px;right:70px}
 .strip{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .strip::-webkit-scrollbar{display:none}
 .cell{flex:0 0 auto;padding:8px 13px}
-.cell.bpm{order:-1;background:rgba(13,91,87,.07)}
+.cell.bpm{order:-1;background:rgba(var(--cal-rgb),.07)}
 .cell.bpm .v{font-size:17px}
 
 /* ---------- mode header ---------- */
@@ -501,7 +503,7 @@ footer.notes{font-size:12px}
 /* ---------- bottom tab bar ---------- */
 .tabbar.modes{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,1fr);
   border:0;border-top:1px solid var(--ink);border-radius:0;overflow:visible;
-  background:rgba(251,245,241,.94);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);
+  background:rgba(var(--paper-rgb),.94);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);
   padding:0 6px var(--safe-b)}
 .tabbar.modes button{height:var(--tabbar-h);border:0;background:transparent;color:var(--ink-faint);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;
@@ -518,11 +520,11 @@ footer.notes{font-size:12px}
 .tabbar.modes button[aria-pressed="true"]:hover{background:transparent}
 
 /* ---------- signal sheet ---------- */
-.scrim{position:fixed;inset:0;z-index:50;background:rgba(25,20,17,.32);opacity:0;pointer-events:none;transition:opacity .22s}
+.scrim{position:fixed;inset:0;z-index:50;background:rgba(var(--ink-rgb),.32);opacity:0;pointer-events:none;transition:opacity .22s}
 .scrim.on{opacity:1;pointer-events:auto}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:60;max-height:86vh;max-height:86dvh;
   display:flex;flex-direction:column;background:var(--paper);border-top:1px solid var(--ink);
-  border-radius:14px 14px 0 0;box-shadow:0 -18px 40px -24px rgba(25,20,17,.6);
+  border-radius:14px 14px 0 0;box-shadow:0 -18px 40px -24px rgba(var(--ink-rgb),.6);
   transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);
   padding-bottom:var(--safe-b)}
 .sheet.on{transform:translateY(0)}
@@ -557,7 +559,7 @@ footer.notes{font-size:12px}
   .detect .split,.fatwrap,.dzwrap,.fcwrap,.edrwrap,.gzwrap,.ssvwrap{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
   .detect .left,.fatwrap .l,.dzwrap .l,.fcwrap .l,.edrwrap .l,.gzwrap .l,.ssvwrap .l{border-right:1px solid var(--rule);border-bottom:0}
   .tabbar.modes{left:50%;right:auto;transform:translateX(-50%);bottom:16px;width:440px;
-    border:1px solid var(--ink);border-radius:14px;padding:0 6px;box-shadow:0 18px 36px -24px rgba(25,20,17,.7)}
+    border:1px solid var(--ink);border-radius:14px;padding:0 6px;box-shadow:0 18px 36px -24px rgba(var(--ink-rgb),.7)}
   .sheet{left:auto;top:0;bottom:0;width:440px;max-height:none;border-radius:0;border-top:0;border-left:1px solid var(--ink);
     transform:translateX(105%);padding-top:var(--safe-t)}
   .sheet.on{transform:translateX(0)}
@@ -579,6 +581,77 @@ footer.notes{font-size:12px}
   .chanbar .chan .rd{font-size:10.5px}
 }
 @media (min-width:900px){ #chart{height:360px} }
+
+/* =====================================================================
+   THEME — light is chart paper; dark is the same recorder at night:
+   charcoal paper, dim oxide grid, warm ink.
+   ===================================================================== */
+:root{
+  --ink-rgb:25,20,17; --card-rgb:255,252,250; --cal-rgb:13,91,87;
+  --warn-rgb:166,46,24; --bold-rgb:222,145,121; --paper-rgb:251,245,241;
+  --wire-pos:#C8372D; --wire-neg:#191411; --wire-ref:#D9A21B;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#121010; --paper-deep:#1B1716; --card:#171312;
+    --grid-fine:#2E211E; --grid-bold:#6B3829;
+    --ink:#EEE7E1; --ink-soft:#B9AEA5; --ink-faint:#7E746C;
+    --cal:#45B8AC; --warn:#EE6B4D;
+    --pen1:#EEE7E1; --pen2:#EE7A58; --pen3:#45B8AC; --pen4:#A495F2;
+    --rule:rgba(238,231,225,.13);
+    --ink-rgb:238,231,225; --card-rgb:30,25,24; --cal-rgb:69,184,172;
+    --warn-rgb:238,107,77; --bold-rgb:238,122,88; --paper-rgb:18,16,16;
+    --wire-neg:#EEE7E1;
+  }
+  .btn{color:#121010}
+  .btn.ghost{color:var(--ink)}
+  #btnBle{color:#0C1A18}
+  .tabbar.modes{background:rgba(18,16,16,.9)}
+  .modes button[aria-pressed="true"]{color:#121010}
+  .tabbar.modes button[aria-pressed="true"]{color:var(--ink)}
+  .mark h1 em,.mh-code{color:var(--grid-bold)}
+  .lever::after{background:var(--ink)}
+  .sw input:checked + .lever::after{background:#121010}
+  input[type=range]::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--paper)}
+}
+
+/* ---------- big live reading ---------- */
+.hero{border:1px solid var(--ink);border-radius:var(--panel-radius);background:var(--card);
+  padding:14px 16px 16px;margin:0 0 12px;position:relative;overflow:hidden}
+.h-lbl{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.18em;
+  font-size:11px;font-weight:600;color:var(--ink-faint)}
+.h-row{display:flex;align-items:baseline;gap:8px;margin:2px 0 4px;min-height:74px}
+.h-val{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:76px;line-height:.95;
+  letter-spacing:-.01em;font-variant-numeric:tabular-nums;color:var(--ink);transform-origin:left 70%}
+.h-unit{font-family:"IBM Plex Mono",monospace;font-size:14px;color:var(--ink-soft)}
+.h-sub{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);min-height:16px}
+.h-meter{height:5px;margin-top:12px;background:var(--paper-deep);border-radius:3px;overflow:hidden}
+.h-meter span{display:block;height:100%;width:0;background:var(--cal);transition:width .25s linear,background .25s}
+.hero.alert{border-color:var(--warn)}
+.hero.alert .h-val{color:var(--warn)}
+.hero.good .h-val{color:var(--cal)}
+.hero.idle .h-val{color:var(--ink-faint)}
+@keyframes beat{0%{transform:scale(1)}14%{transform:scale(1.07)}32%{transform:scale(.99)}100%{transform:scale(1)}}
+.h-val.beat{animation:beat .42s ease-out}
+@media (prefers-reduced-motion:reduce){.h-val.beat{animation:none}}
+
+/* ---------- electrode guide ---------- */
+.guide{border:1px solid var(--rule);border-radius:var(--panel-radius);background:rgba(var(--card-rgb),.6);margin:0 0 12px}
+.guide summary{list-style:none;display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;min-height:44px}
+.guide summary::-webkit-details-marker{display:none}
+.g-k{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.16em;font-size:12px;font-weight:600;color:var(--ink-soft)}
+.g-t{font-size:13px;color:var(--ink-faint);flex:1}
+.g-chev{width:9px;height:9px;border-right:1.6px solid var(--ink-soft);border-bottom:1.6px solid var(--ink-soft);
+  transform:rotate(45deg);transition:transform .2s;margin-right:4px}
+.guide[open] .g-chev{transform:rotate(-135deg)}
+.g-body{padding:0 14px 14px;border-top:1px solid var(--rule)}
+.g-fig{display:block;width:100%;max-width:420px;margin:10px auto 6px;color:var(--ink-soft)}
+.g-fig .lbl{font:600 11px "Barlow Condensed",sans-serif;letter-spacing:.08em;fill:var(--ink)}
+.g-fig .side{font:500 10px "IBM Plex Mono",monospace;fill:var(--ink-faint)}
+.g-legend{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:12.5px;margin-top:6px}
+.g-legend .w{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--paper);box-shadow:0 0 0 1px var(--rule)}
+.g-legend b{font-family:"IBM Plex Mono",monospace;font-weight:500;margin-right:6px}
+.g-tip{margin:10px 0 0;font-size:12.5px;color:var(--ink-soft);line-height:1.5}
 </style>
 </head>
 <body>
@@ -624,6 +697,18 @@ footer.notes{font-size:12px}
     Signal
   </button>
 </div>
+
+<section class="hero" id="hero" aria-live="polite">
+  <div class="h-lbl" id="hLbl">No signal</div>
+  <div class="h-row"><span class="h-val" id="hVal">—</span><span class="h-unit" id="hUnit"></span></div>
+  <div class="h-sub" id="hSub">Connect the board or run the demo</div>
+  <div class="h-meter" id="hMeterWrap"><span id="hBar"></span></div>
+</section>
+
+<details class="guide" id="guide" open>
+  <summary><span class="g-k">Electrodes</span><span class="g-t" id="gTitle">Forearm</span><span class="g-chev" aria-hidden="true"></span></summary>
+  <div class="g-body" id="gBody"></div>
+</details>
 
 <div class="chanbar" id="chanbar"></div>
 
@@ -1042,6 +1127,22 @@ footer.notes{font-size:12px}
 
 <script>
 "use strict";
+
+/* ======================= theme ======================= */
+/* Canvas can't read CSS variables, so keep a live copy of the theme's
+   RGB triplets and rebuild the cached grid when the phone switches theme. */
+const RGB={};
+function readRGB(){
+  const cs=getComputedStyle(document.documentElement);
+  for(const k of ["ink","card","cal","warn","bold","paper"])
+    RGB[k]=(cs.getPropertyValue("--"+k+"-rgb")||"").trim()||"0,0,0";
+}
+readRGB();
+try{
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{
+    readRGB(); if(typeof sizeCanvases==="function") sizeCanvases();
+  });
+}catch(e){}
 
 /* ======================= DSP primitives ======================= */
 
@@ -2638,10 +2739,10 @@ function drawChart(){
     const span=S.env? laneH*0.8 : laneH/2*0.92;
 
     if(li>0){
-      cctx.strokeStyle="rgba(25,20,17,.22)";cctx.lineWidth=1;
+      cctx.strokeStyle="rgba("+RGB.ink+",.22)";cctx.lineWidth=1;
       cctx.beginPath();cctx.moveTo(0,top+.5);cctx.lineTo(CW,top+.5);cctx.stroke();
     }
-    cctx.strokeStyle="rgba(25,20,17,.14)";cctx.setLineDash([2,4]);cctx.lineWidth=1;
+    cctx.strokeStyle="rgba("+RGB.ink+",.14)";cctx.setLineDash([2,4]);cctx.lineWidth=1;
     cctx.beginPath();cctx.moveTo(GUT,mid+.5);cctx.lineTo(CW,mid+.5);cctx.stroke();
     cctx.setLineDash([]);
 
@@ -2685,11 +2786,11 @@ function drawSpectrum(){
   const fMax=250,pad=26,plotH=H-pad-8,x0=28,plotW=W-x0-8;
   const xOf=f=>x0+(f/fMax)*plotW;
 
-  sctx.fillStyle="rgba(13,91,87,.10)";
+  sctx.fillStyle="rgba("+RGB.cal+",.10)";
   sctx.beginPath();sctx.moveTo(x0,H-pad);
   for(let f=0;f<=fMax;f++) sctx.lineTo(xOf(f),H-pad-Math.min(1,chainMag(f))*plotH);
   sctx.lineTo(xOf(fMax),H-pad);sctx.closePath();sctx.fill();
-  sctx.strokeStyle="rgba(13,91,87,.55)";sctx.lineWidth=1;sctx.beginPath();
+  sctx.strokeStyle="rgba("+RGB.cal+",.55)";sctx.lineWidth=1;sctx.beginPath();
   for(let f=0;f<=fMax;f++){const x=xOf(f),y=H-pad-Math.min(1,chainMag(f))*plotH;f?sctx.lineTo(x,y):sctx.moveTo(x,y);}
   sctx.stroke();
 
@@ -2706,9 +2807,9 @@ function drawSpectrum(){
     sctx.strokeStyle=color;sctx.lineWidth=w;sctx.stroke();
   }
   plot(c.magRaw,css("--grid-bold"),1,null);
-  plot(c.magFilt,css(c.pen),1.5,"rgba(25,20,17,.07)");
+  plot(c.magFilt,css(c.pen),1.5,"rgba("+RGB.ink+",.07)");
 
-  sctx.strokeStyle="rgba(166,46,24,.5)";sctx.setLineDash([3,3]);sctx.lineWidth=1;
+  sctx.strokeStyle="rgba("+RGB.warn+",.5)";sctx.setLineDash([3,3]);sctx.lineWidth=1;
   sctx.beginPath();sctx.moveTo(xOf(S.mains),8);sctx.lineTo(xOf(S.mains),H-pad);sctx.stroke();
   sctx.setLineDash([]);
   sctx.fillStyle=css("--warn");sctx.font='600 9px "Barlow Condensed", sans-serif';
@@ -2759,7 +2860,7 @@ function drawTrend(){
   const yOf=v=>padT+(1-(v-lo)/(hi-lo))*(H-padT-padB);
 
   // 100% reference
-  tctx.strokeStyle="rgba(25,20,17,.3)";tctx.setLineDash([3,3]);tctx.lineWidth=1;
+  tctx.strokeStyle="rgba("+RGB.ink+",.3)";tctx.setLineDash([3,3]);tctx.lineWidth=1;
   tctx.beginPath();tctx.moveTo(padL,yOf(100));tctx.lineTo(W-8,yOf(100));tctx.stroke();
   tctx.setLineDash([]);
 
@@ -2778,7 +2879,7 @@ function drawTrend(){
     let sx=0,sy=0;for(const p of e){sx+=p.t;sy+=p.s;}
     const mx=sx/e.length,my=sy/e.length;
     const y1=(my+rg.slope*(0-mx))/b*100, y2=(my+rg.slope*(tMax-mx))/b*100;
-    tctx.strokeStyle="rgba(13,91,87,.45)";tctx.setLineDash([5,4]);tctx.lineWidth=1.2;
+    tctx.strokeStyle="rgba("+RGB.cal+",.45)";tctx.setLineDash([5,4]);tctx.lineWidth=1.2;
     tctx.beginPath();tctx.moveTo(xOf(0),yOf(y1));tctx.lineTo(xOf(tMax),yOf(y2));tctx.stroke();
     tctx.setLineDash([]);
   }
@@ -2810,9 +2911,9 @@ function drawJasa(){
   const yOf=v=>cy-(v/m)*(H/2-16);
 
   // quadrant tint: fatigue quadrant is the one that matters
-  jctx.fillStyle="rgba(166,46,24,.07)";jctx.fillRect(cx,cy,W/2,H/2);
+  jctx.fillStyle="rgba("+RGB.warn+",.07)";jctx.fillRect(cx,cy,W/2,H/2);
 
-  jctx.strokeStyle="rgba(25,20,17,.45)";jctx.lineWidth=1;
+  jctx.strokeStyle="rgba("+RGB.ink+",.45)";jctx.lineWidth=1;
   jctx.beginPath();jctx.moveTo(0,cy);jctx.lineTo(W,cy);jctx.moveTo(cx,0);jctx.lineTo(cx,H);jctx.stroke();
 
   jctx.font='600 9.5px "Barlow Condensed", sans-serif';
@@ -2841,7 +2942,7 @@ function drawJasa(){
   pts.forEach((p,i)=>{
     const dR=p.rms/FAT.rms0*100-100, dM=p.s/FAT.mdf0*100-100;
     const a=0.12+0.55*(i/pts.length);
-    jctx.fillStyle="rgba(25,20,17,"+a.toFixed(2)+")";
+    jctx.fillStyle="rgba("+RGB.ink+","+a.toFixed(2)+")";
     jctx.beginPath();jctx.arc(xOf(dR),yOf(dM),1.9,0,Math.PI*2);jctx.fill();
   });
   if(rg){
@@ -2984,7 +3085,7 @@ function drawFcTrend(){
   const yOf=g=>padT+plotH-(g/gMax)*plotH;
 
   // deep-focus band
-  fctx.fillStyle="rgba(13,91,87,.09)";
+  fctx.fillStyle="rgba("+RGB.cal+",.09)";
   fctx.fillRect(padL,padT,plotW,yOf(FC.deepGap)-padT);
   fctx.strokeStyle=css("--cal");fctx.setLineDash([4,4]);fctx.lineWidth=1;
   fctx.beginPath();fctx.moveTo(padL,yOf(FC.deepGap));fctx.lineTo(W-8,yOf(FC.deepGap));
@@ -3046,9 +3147,9 @@ function drawDzTrend(){
   dtctx.beginPath();dtctx.moveTo(padL+.5,0);dtctx.lineTo(padL+.5,H);dtctx.stroke();
 
   const plotH=H-padT-padB, plotW=W-padL-8;
-  dtctx.fillStyle="rgba(166,46,24,.07)";
+  dtctx.fillStyle="rgba("+RGB.warn+",.07)";
   dtctx.fillRect(padL,padT,plotW,plotH*0.30);
-  dtctx.fillStyle="rgba(222,145,121,.07)";
+  dtctx.fillStyle="rgba("+RGB.bold+",.07)";
   dtctx.fillRect(padL,padT+plotH*0.30,plotW,plotH*0.30);
 
   if(DZ.hist.length<2){
@@ -3101,7 +3202,7 @@ function drawDzBlink(){
   const yOf=d=>padT+plotH-(d/durMax)*plotH;
 
   if(DZ.base){
-    dbctx.strokeStyle="rgba(25,20,17,.35)";dbctx.setLineDash([4,4]);dbctx.lineWidth=1;
+    dbctx.strokeStyle="rgba("+RGB.ink+",.35)";dbctx.setLineDash([4,4]);dbctx.lineWidth=1;
     dbctx.beginPath();dbctx.moveTo(padL,yOf(DZ.base.dur));dbctx.lineTo(W-8,yOf(DZ.base.dur));
     dbctx.stroke();dbctx.setLineDash([]);
   }
@@ -3152,7 +3253,7 @@ function drawGazePad(){
   const xOf=v=>cx+(v/m)*(W/2-14);
   const yOf=v=>cy-(v/m)*(H/2-14);
 
-  gctx.strokeStyle="rgba(25,20,17,.35)";gctx.lineWidth=1;
+  gctx.strokeStyle="rgba("+RGB.ink+",.35)";gctx.lineWidth=1;
   gctx.beginPath();gctx.moveTo(0,cy);gctx.lineTo(W,cy);gctx.moveTo(cx,0);gctx.lineTo(cx,H);gctx.stroke();
 
   // threshold box: outside this, a direction registers
@@ -3175,7 +3276,7 @@ function drawGazePad(){
   const H0=hu0*GZ.gainH, V0=vu0*GZ.gainV;
   GZ.trail.forEach((p,i)=>{
     const a=0.06+0.4*(i/Math.max(1,GZ.trail.length));
-    gctx.fillStyle="rgba(25,20,17,"+a.toFixed(2)+")";
+    gctx.fillStyle="rgba("+RGB.ink+","+a.toFixed(2)+")";
     gctx.beginPath();gctx.arc(xOf(p[0]),yOf(p[1]),1.8,0,Math.PI*2);gctx.fill();
   });
 
@@ -3303,7 +3404,7 @@ function drawEdrSpec(){
   const binHz=EDR_FS/EDR_N, fMax=0.8, plotH=H-padT-padB, plotW=W-padL-8;
   const xOf=f=>padL+(f/fMax)*plotW;
 
-  esctx.fillStyle="rgba(13,91,87,.08)";
+  esctx.fillStyle="rgba("+RGB.cal+",.08)";
   esctx.fillRect(xOf(0.1),padT,xOf(0.6)-xOf(0.1),plotH);
 
   if(EDR.beats.length<6){
@@ -3607,6 +3708,7 @@ function frame(now){
                         paintFocus(); drawFcTrend(); }
     if(S.mode==="ecg"){ paintEdr(); drawEdrTrace(); drawEdrSpec(); }
     if(S.mode==="eog"){ paintGaze(); }
+    paintHero();
   }
 }
 
@@ -3633,6 +3735,7 @@ async function connect(){
   chDetected=false;
   S.running=true;S.source="serial";S.frozen=false;
   setLamp("live","Streaming");
+  document.getElementById("guide").open=false;
   document.getElementById("chartNote").textContent="";
   document.getElementById("btnConnect").textContent="Disconnect";
   keepReading=true;readLoop();
@@ -3774,6 +3877,7 @@ async function bleConnect(){
   hideAlert();
   S.running=true;S.source="ble";S.frozen=false;
   setLamp("live","Bluetooth");
+  document.getElementById("guide").open=false;
   document.getElementById("chartNote").textContent="";
   document.getElementById("btnBle").textContent="Disconnect";
   document.getElementById("linkCell").style.display="";
@@ -4079,12 +4183,159 @@ document.getElementById("ssvFreqs").addEventListener("change",e=>{
 
 window.addEventListener("resize",sizeCanvases);
 
+
+/* ======================= big live reading ======================= */
+
+let heroBeat=-1;
+function setHero(lbl,val,unit,sub,meter,tone){
+  const h=document.getElementById("hero");
+  document.getElementById("hLbl").textContent=lbl;
+  document.getElementById("hVal").textContent=val;
+  document.getElementById("hUnit").textContent=unit||"";
+  document.getElementById("hSub").textContent=sub||"";
+  const wrap=document.getElementById("hMeterWrap"), bar=document.getElementById("hBar");
+  wrap.style.visibility = meter==null ? "hidden" : "visible";
+  if(meter!=null) bar.style.width=(Math.max(0,Math.min(1,meter))*100).toFixed(1)+"%";
+  h.className="hero"+(tone?" "+tone:"");
+}
+function uv(c){ return c? c.rms*uvPerCount()*1000 : 0; }
+
+/* One number per tab, picked by what the person is doing right now: a running
+   test outranks a live measurement, which outranks raw activity. */
+function paintHero(){
+  if(!S.running){ setHero("No signal","—","","Connect the board or run the demo",null,"idle"); return; }
+  const m=S.mode, c0=CH[0];
+
+  if(m==="emg"){
+    const r = FAT.running ? fatRegression() : null;
+    if(FAT.running){
+      if(r){
+        const fast=r.perMin<-8;
+        setHero("Fatigue",(r.perMin>0?"+":"")+r.perMin.toFixed(1),"%/min",
+          r.qLbl.toLowerCase()+" · median "+r.mdf.toFixed(0)+" Hz",Math.min(1,-r.perMin/20),fast?"alert":null);
+      }else setHero("Fatigue test","…","","hold the contraction steady",null,"idle");
+      return;
+    }
+    if(MODEL.detecting){
+      setHero("Gesture",document.getElementById("vBig").textContent,"",
+        document.getElementById("vSub").textContent,null,"good");
+      return;
+    }
+    const a=uv(c0);
+    setHero("Muscle activity",a>=1000?(a/1000).toFixed(2):a.toFixed(0),a>=1000?"mVrms":"µVrms",
+      "CH1 · tense the muscle to see it climb",Math.min(1,Math.log10(1+a)/3));
+    return;
+  }
+
+  if(m==="ecg"){
+    const k=ecgMetrics();
+    if(!k){ setHero("Heart rate","—","bpm","finding beats…",null,"idle"); return; }
+    const parts=["RMSSD "+k.rmssd.toFixed(0)+" ms"];
+    if(EDR.ready) parts.unshift("breathing "+EDR.rate.toFixed(1)+"/min");
+    if(k.irregular) parts.push("irregular rhythm");
+    setHero("Heart rate",k.bpm.toFixed(0),"bpm",parts.join(" · "),null,k.irregular?"alert":null);
+    if(ECG.last!==heroBeat){
+      heroBeat=ECG.last;
+      const v=document.getElementById("hVal");
+      v.classList.remove("beat"); void v.offsetWidth; v.classList.add("beat");
+    }
+    return;
+  }
+
+  if(m==="eog"){
+    if(GZ.running){
+      const d=GZ.dir;
+      setHero("Looking",d==="centre"?"Centre":d[0].toUpperCase()+d.slice(1),"",
+        d==="centre"?"move your eyes to choose":"hold "+GZ.hold.toFixed(1)+" / "+GZ.dwell.toFixed(1)+" s",
+        d==="centre"?0:GZ.hold/GZ.dwell,d==="centre"?null:"good");
+      return;
+    }
+    const last=EOG.events[0];
+    setHero("Eye movement",last?last.name:"—","",
+      "blinks "+EOG.counts.blink+" · left "+EOG.counts.left+" · right "+EOG.counts.right+
+      (GZ.ready?"":" · calibrate below for gaze control"),null,last?null:"idle");
+    return;
+  }
+
+  // EEG tab: alertness once a baseline exists, otherwise focus or alpha
+  if(DZ.base){
+    const alert=Math.round((1-DZ.score)*100);
+    setHero("Alertness",String(alert),"%",DZ.level.toLowerCase()+" · blinks "+DZ.rate.toFixed(0)+"/min",
+      1-DZ.score,DZ.score>=0.7?"alert":(DZ.score<0.4?"good":null));
+    return;
+  }
+  if(FC.running){
+    setHero("Deep focus",fmtClock(FC.deepS),"",FC.state==="deep"?"in deep focus now":"current gap "+
+      Math.max(0,sampleCount/FS-(FC.lastBlink||0)).toFixed(0)+" s",null,FC.state==="deep"?"good":null);
+    return;
+  }
+  const b=eegBands();
+  const al=b?b.bands[2].rel*100:0;
+  setHero("Alpha share",al.toFixed(0),"%","close your eyes and it should climb · set a baseline for alertness",al/60);
+}
+
+/* ======================= electrode guide ======================= */
+
+const DOT=(x,y,c)=>'<circle cx="'+x+'" cy="'+y+'" r="7.5" fill="'+c+'" stroke="var(--paper)" stroke-width="2.5"/>';
+const LBL=(x,y,t,a)=>'<text class="lbl" x="'+x+'" y="'+y+'" text-anchor="'+(a||"middle")+'">'+t+'</text>';
+const SIDE=(x,y,t,a)=>'<text class="side" x="'+x+'" y="'+y+'" text-anchor="'+(a||"middle")+'">'+t+'</text>';
+const P="var(--wire-pos)", N="var(--wire-neg)", R="var(--wire-ref)";
+const FACE='<ellipse cx="160" cy="104" rx="74" ry="90" fill="none" stroke="currentColor" stroke-width="1.6"/>'+
+  '<path d="M84 98q-12 0-12 16t12 18M236 98q12 0 12 16t-12 18" fill="none" stroke="currentColor" stroke-width="1.6"/>'+
+  '<path d="M114 76q14-8 30 0M176 76q16-8 30 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'+
+  '<ellipse cx="129" cy="96" rx="15" ry="7" fill="none" stroke="currentColor" stroke-width="1.4"/>'+
+  '<ellipse cx="191" cy="96" rx="15" ry="7" fill="none" stroke="currentColor" stroke-width="1.4"/>'+
+  '<circle cx="129" cy="96" r="3" fill="currentColor"/><circle cx="191" cy="96" r="3" fill="currentColor"/>'+
+  '<path d="M160 104v22l-6 4M146 152q14 8 28 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>';
+
+const GUIDES={
+  emg:{title:"Forearm",
+    svg:'<path d="M14 74Q120 54 228 80L228 118Q120 140 14 130Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>'+
+        '<path d="M228 80Q262 62 296 76Q314 98 296 118Q262 132 228 118" fill="none" stroke="currentColor" stroke-width="1.6"/>'+
+        '<path d="M70 98Q130 90 200 99" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 4" opacity=".6"/>'+
+        DOT(112,99,P)+DOT(152,98,N)+DOT(268,98,R)+
+        LBL(112,80,"IN+")+LBL(152,80,"IN−")+LBL(268,80,"REF")+
+        SIDE(24,160,"elbow","start")+SIDE(296,160,"back of hand","end"),
+    tip:"IN+ and IN− go 2–3 cm apart along the belly of the forearm muscle, the fleshy part below the elbow. REF goes on a bony spot with no muscle under it: the back of the hand or the wrist bone."},
+  ecg:{title:"Chest",
+    svg:'<path d="M132 14v22Q76 40 50 70L44 188M188 14v22Q244 40 270 70L276 188" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'+
+        '<path d="M96 52Q132 64 160 58Q188 64 224 52" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".7"/>'+
+        DOT(108,82,N)+DOT(212,146,P)+DOT(108,152,R)+
+        LBL(108,64,"IN−")+LBL(212,128,"IN+")+LBL(108,176,"REF")+
+        SIDE(40,40,"your right","start")+SIDE(280,40,"your left","end"),
+    tip:"IN− just below the collarbone on your right, IN+ on the lower ribs on your left, REF on the lower ribs on your right. Bridge the ECG jumper on the Pill, and sit still: arm movement reads as noise."},
+  eog:{title:"Eyes",
+    svg:FACE+DOT(102,96,N)+DOT(218,96,P)+DOT(82,138,R)+
+        LBL(102,124,"IN−")+LBL(218,124,"IN+")+LBL(56,160,"REF","middle")+
+        SIDE(20,20,"your right","start")+SIDE(300,20,"your left","end"),
+    tip:"IN+ and IN− on bone at the outer corner of each eye, level with the pupil, never on the eyelid. REF on an earlobe. Move only your eyes, not your head."},
+  eeg:{title:"Forehead",
+    svg:FACE+DOT(134,50,N)+DOT(186,50,P)+DOT(82,138,R)+
+        LBL(134,36,"IN−")+LBL(186,36,"IN+")+LBL(56,160,"REF","middle")+
+        SIDE(20,20,"your right","start")+SIDE(300,20,"your left","end"),
+    tip:"Both IN electrodes on the forehead, about 2 cm above each eyebrow; REF on an earlobe. That covers drowsiness and focus. For the flicker test (SSVEP) move IN+ to the back of the head, 2–3 cm above the bony bump at the base of the skull."}
+};
+
+function renderGuide(m){
+  const g=GUIDES[m];
+  document.getElementById("gTitle").textContent=g.title;
+  document.getElementById("gBody").innerHTML=
+    '<svg class="g-fig" viewBox="0 0 320 196" role="img" aria-label="Electrode placement: '+g.title+'">'+g.svg+'</svg>'+
+    '<div class="g-legend">'+
+      '<span class="w" style="background:var(--wire-pos)"></span><span><b>IN+</b>red wire</span>'+
+      '<span class="w" style="background:var(--wire-neg)"></span><span><b>IN−</b>black wire</span>'+
+      '<span class="w" style="background:var(--wire-ref)"></span><span><b>REF</b>yellow wire</span>'+
+    '</div><p class="g-tip">'+g.tip+'</p>';
+}
+
 /* ======================= app shell ======================= */
 
 const MODE_NAMES={emg:"Muscle",ecg:"Heart",eog:"Eyes",eeg:"Brain"};
 function shellOnMode(m){
   document.getElementById("modeName").textContent=MODE_NAMES[m];
   document.getElementById("modeCode").textContent=m.toUpperCase()+" · "+fmtHz(S.hp)+"–"+fmtHz(S.lp)+" Hz";
+  renderGuide(m);
+  if(!S.running) document.getElementById("guide").open=true;
   // cards that were display:none have zero size until shown, so size the
   // canvases again once the new mode's cards are laid out
   requestAnimationFrame(sizeCanvases);
@@ -4148,6 +4399,7 @@ renderMenu();
 syncGateSlider();
 setChannelCount(2);
 applyMode("emg");
+paintHero();
 document.getElementById("numScale").disabled=true;
 requestAnimationFrame(frame);
 </script>
