@@ -1,0 +1,3913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Axon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:      #FBF5F1;
+  --paper-deep: #F5EBE4;
+  --card:       #FEF8F5;
+  --grid-fine:  #F2CDBF;
+  --grid-bold:  #DE9179;
+  --ink:        #191411;
+  --ink-soft:   #6E6259;
+  --ink-faint:  #A2958A;
+  --cal:        #0D5B57;
+  --warn:       #A62E18;
+
+  /* four pen inks, the way a multi-pen polygraph loaded its carousel */
+  --pen1: #191411;
+  --pen2: #B23A1F;
+  --pen3: #0D5B57;
+  --pen4: #4A3B86;
+
+  --rule: rgba(25,20,17,.16);
+  --panel-radius: 2px;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(circle at 12% -10%, rgba(222,145,121,.10), transparent 55%),
+    radial-gradient(circle at 92% 4%,  rgba(13,91,87,.06),  transparent 45%);
+}
+.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.silk{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;font-weight:600;font-size:12px;color:var(--ink-soft)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px 60px}
+
+/* ---------- header ---------- */
+header.bar{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;padding:26px 0 14px;border-bottom:1px solid var(--rule);margin-bottom:22px}
+.mark{flex:1 1 300px;min-width:260px}
+.mark h1{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:38px;line-height:.95;margin:0;letter-spacing:.01em;text-transform:uppercase}
+.mark h1 em{font-style:normal;color:var(--grid-bold)}
+.mark .tagline{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;
+  letter-spacing:.22em;font-size:12px;font-weight:500;color:var(--grid-bold);
+  margin:3px 0 0}
+.mark p{margin:6px 0 0;color:var(--ink-soft);max-width:56ch;font-size:13px}
+.linkrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+
+button{font:inherit;cursor:pointer}
+.btn{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.12em;font-weight:600;font-size:13px;
+  background:var(--ink);color:var(--paper);border:1px solid var(--ink);padding:10px 18px;border-radius:var(--panel-radius);
+  transition:background .15s,color .15s,transform .06s}
+.btn:hover{background:var(--cal);border-color:var(--cal)}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn.ghost:hover{background:var(--paper-deep);color:var(--ink);border-color:var(--ink)}
+.btn.sm{padding:7px 12px;font-size:12px}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+:focus-visible{outline:2px solid var(--cal);outline-offset:2px}
+
+.lamp{display:inline-flex;align-items:center;gap:8px}
+.lamp .bulb{width:9px;height:9px;border-radius:50%;background:var(--ink-faint);box-shadow:0 0 0 3px rgba(162,149,138,.18)}
+.lamp.live .bulb{background:var(--cal);box-shadow:0 0 0 3px rgba(13,91,87,.2);animation:pulse 1.6s infinite}
+.lamp.demo .bulb{background:var(--grid-bold);box-shadow:0 0 0 3px rgba(222,145,121,.22)}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(13,91,87,0)}}
+
+/* ---------- recorder ---------- */
+.recorder{border:1px solid var(--ink);border-radius:var(--panel-radius);background:var(--paper-deep);overflow:hidden;
+  box-shadow:0 1px 0 rgba(25,20,17,.06), 0 18px 40px -30px rgba(25,20,17,.55)}
+.chartbox{position:relative;background:var(--card)}
+#chart{display:block;width:100%;height:380px}
+.chart-note{position:absolute;left:56px;top:9px;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;
+  letter-spacing:.16em;font-size:11px;font-weight:600;color:var(--grid-bold);pointer-events:none}
+.clip-flag{position:absolute;right:12px;top:9px;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;
+  letter-spacing:.16em;font-size:11px;font-weight:600;color:var(--warn);opacity:0;transition:opacity .2s;pointer-events:none}
+.clip-flag.on{opacity:1}
+
+.strip{display:flex;align-items:center;flex-wrap:wrap;border-top:1px solid var(--ink);background:var(--paper-deep)}
+.cell{padding:9px 16px;border-right:1px solid var(--rule);display:flex;align-items:baseline;gap:8px;min-width:0}
+.cell:last-child{border-right:0}
+.cell .k{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;font-size:10px;font-weight:600;color:var(--ink-faint)}
+.cell .v{font-family:"IBM Plex Mono",monospace;font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}
+.cell .v small{font-size:10px;color:var(--ink-soft);font-weight:400}
+.cell.push{margin-left:auto;border-right:0}
+.cell.bpm .v{font-size:19px;color:var(--cal)}
+
+/* ---------- channel bar ---------- */
+.chanbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:0;margin-top:22px;
+  border:1px solid var(--rule);border-radius:var(--panel-radius);background:rgba(255,252,250,.6);overflow:hidden}
+.chan{padding:12px 14px;border-right:1px solid var(--rule);display:flex;flex-direction:column;gap:8px}
+.chan:last-child{border-right:0}
+.chan.off{opacity:.42}
+.chan .hd{display:flex;align-items:center;gap:9px}
+.nib{width:12px;height:12px;border-radius:1px;flex:0 0 auto}
+.chan .name{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.12em;font-weight:600;font-size:13px}
+.chan .pin{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-faint);margin-left:auto}
+.meter{height:6px;background:var(--paper-deep);border:1px solid var(--rule);border-radius:1px;overflow:hidden}
+.meter span{display:block;height:100%;width:0;transition:width .1s linear}
+.chan .rd{display:flex;justify-content:space-between;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-soft)}
+
+/* ---------- cards ---------- */
+.deck{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);gap:22px;margin-top:22px}
+@media(max-width:900px){.deck{grid-template-columns:1fr}}
+/* phone: the recorder stays the hero, everything else stacks beneath it */
+@media(max-width:600px){
+  .wrap{padding:0 12px 40px}
+  header.bar{padding:16px 0 12px;gap:12px}
+  .mark h1{font-size:30px}
+  .mark p{display:none}
+  .linkrow{width:100%}
+  .linkrow .btn{flex:1 1 auto;padding:12px 10px}
+  .linkrow .lamp{width:100%}
+  #chart{height:300px}
+  .cell{padding:8px 11px}
+  .rowset{grid-template-columns:1fr}
+  .targets{grid-template-columns:1fr 1fr}
+}
+.card{border:1px solid var(--rule);border-radius:var(--panel-radius);background:rgba(255,252,250,.6)}
+.card > h2{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.16em;font-size:12px;font-weight:600;
+  color:var(--ink-soft);margin:0;padding:12px 16px;border-bottom:1px solid var(--rule);
+  display:flex;justify-content:space-between;align-items:center;gap:10px}
+.card > h2 span{color:var(--ink-faint);letter-spacing:.02em;font-weight:400;text-transform:none;font-family:"IBM Plex Sans",sans-serif;font-size:11px;text-align:right}
+.card .body{padding:16px}
+
+.modes{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--ink);border-radius:var(--panel-radius);overflow:hidden}
+.modes button{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600;font-size:14px;
+  padding:11px 4px;background:transparent;color:var(--ink);border:0;border-right:1px solid var(--rule);transition:background .14s,color .14s}
+.modes button:last-child{border-right:0}
+.modes button:hover{background:var(--paper-deep)}
+.modes button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.modes button[aria-pressed="true"]:hover{background:var(--cal)}
+.band{margin-top:8px;font-size:12px;color:var(--ink-soft)}
+.band .num{color:var(--ink)}
+
+.switches{margin-top:18px;display:flex;flex-direction:column;gap:2px}
+.sw{display:flex;align-items:center;gap:14px;padding:9px 2px;border-top:1px solid var(--rule);cursor:pointer;user-select:none}
+.sw:first-child{border-top:0}
+.sw input{position:absolute;opacity:0;width:0;height:0}
+.lever{flex:0 0 auto;width:40px;height:20px;border:1px solid var(--ink);border-radius:1px;background:var(--paper-deep);position:relative;transition:background .16s}
+.lever::after{content:"";position:absolute;top:2px;left:2px;width:15px;height:14px;background:var(--ink);transition:transform .16s cubic-bezier(.4,1.4,.6,1)}
+.sw input:checked + .lever{background:var(--cal)}
+.sw input:checked + .lever::after{transform:translateX(19px);background:var(--paper)}
+.sw input:focus-visible + .lever{outline:2px solid var(--cal);outline-offset:2px}
+.sw .txt b{display:block;font-weight:500;font-size:13.5px}
+.sw .txt i{display:block;font-style:normal;font-size:11.5px;color:var(--ink-soft);line-height:1.35}
+.sw.compact{padding:6px 2px;border-top:0}
+.sw.compact .lever{width:32px;height:17px}
+.sw.compact .lever::after{width:12px;height:11px}
+.sw.compact input:checked + .lever::after{transform:translateX(16px)}
+
+.dial{margin-top:14px}
+.dial .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.dial label{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.13em;font-size:11px;font-weight:600;color:var(--ink-soft)}
+.dial output{font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--grid-bold)}
+input[type=range]::-moz-range-track{height:2px;background:var(--grid-bold)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:16px;background:var(--ink);border:0;border-radius:1px;margin-top:-7px}
+input[type=range]::-moz-range-thumb{width:12px;height:16px;background:var(--ink);border:0;border-radius:1px}
+input[type=range]:disabled{opacity:.3}
+
+.rowset{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:16px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.13em;font-size:11px;font-weight:600;color:var(--ink-soft)}
+select,input[type=number],input[type=text]{font-family:"IBM Plex Mono",monospace;font-size:13px;padding:7px 8px;
+  border:1px solid var(--rule);border-radius:var(--panel-radius);background:var(--paper);color:var(--ink);width:100%}
+select:focus,input[type=number]:focus,input[type=text]:focus{border-color:var(--cal);outline:none}
+
+#spectrum{display:block;width:100%;height:200px;background:var(--card);border-bottom:1px solid var(--rule)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center;padding:11px 16px;font-size:11.5px;color:var(--ink-soft)}
+.legend i{font-style:normal;display:inline-flex;align-items:center;gap:6px}
+.key{width:14px;height:3px;display:inline-block}
+.actions{display:flex;gap:9px;flex-wrap:wrap;padding:13px 16px;border-top:1px solid var(--rule)}
+
+/* ---------- detection ---------- */
+.detect{margin-top:22px}
+.detect .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:0}
+@media(max-width:900px){.detect .split{grid-template-columns:1fr}}
+.detect .left{padding:16px;border-right:1px solid var(--rule)}
+.detect .right{padding:16px}
+@media(max-width:900px){.detect .left{border-right:0;border-bottom:1px solid var(--rule)}}
+
+.howto{font-size:12.5px;color:var(--ink-soft);margin:0 0 14px;line-height:1.55}
+.trainrow{display:flex;gap:8px;align-items:flex-end}
+.trainrow .field{flex:1}
+.classlist{margin-top:14px;display:flex;flex-direction:column;gap:0}
+.cls{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--rule);font-size:13px}
+.cls:first-child{border-top:0}
+.cls .nm{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600;font-size:13.5px}
+.cls .ct{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-faint);margin-left:auto}
+.cls .x{background:transparent;border:0;color:var(--ink-faint);font-size:16px;line-height:1;padding:2px 4px}
+.cls .x:hover{color:var(--warn)}
+.empty{font-size:12.5px;color:var(--ink-faint);padding:10px 0;border-top:1px solid var(--rule)}
+.rec-state{margin-top:12px;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;
+  font-size:12px;font-weight:600;color:var(--warn);min-height:18px}
+
+.verdict{border:1px solid var(--ink);border-radius:var(--panel-radius);padding:16px 18px;background:var(--card);margin-bottom:16px}
+.verdict .lbl{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.16em;font-size:10px;font-weight:600;color:var(--ink-faint)}
+.verdict .big{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.03em;font-weight:600;
+  font-size:44px;line-height:1.02;margin:2px 0 0}
+.verdict .sub{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin-top:4px}
+
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar{display:grid;grid-template-columns:90px 1fr 44px;align-items:center;gap:10px;font-size:12px}
+.bar .bn{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .bt{height:9px;background:var(--paper-deep);border:1px solid var(--rule);border-radius:1px;overflow:hidden}
+.bar .bt span{display:block;height:100%;background:var(--ink);width:0;transition:width .12s linear}
+.bar .bv{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-soft);text-align:right}
+.bar.top .bt span{background:var(--cal)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:0;border:1px solid var(--rule);border-radius:var(--panel-radius);overflow:hidden}
+.stat{padding:11px 13px;border-right:1px solid var(--rule)}
+.stat .k{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.13em;font-size:10px;font-weight:600;color:var(--ink-faint);display:block}
+.stat .v{font-family:"IBM Plex Mono",monospace;font-size:17px;font-variant-numeric:tabular-nums}
+.stat .v small{font-size:10px;color:var(--ink-soft)}
+
+.evlog{margin-top:14px;max-height:150px;overflow:auto;border-top:1px solid var(--rule)}
+.ev{display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--rule);font-size:12.5px;align-items:baseline}
+.ev .t{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-faint);flex:0 0 58px}
+.ev .n{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+.ev .d{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-faint)}
+
+.pane{display:none}
+.pane.on{display:block}
+
+/* ---------- fatigue ---------- */
+.fatigue{margin-top:22px}
+.fatigue.hidden{display:none}
+.fatwrap{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:0}
+@media(max-width:900px){.fatwrap{grid-template-columns:1fr}}
+.fatwrap .l{padding:16px;border-right:1px solid var(--rule)}
+@media(max-width:900px){.fatwrap .l{border-right:0;border-bottom:1px solid var(--rule)}}
+#fatTrend{display:block;width:100%;height:214px;background:var(--card);border-bottom:1px solid var(--rule)}
+#fatJasa{display:block;width:100%;height:236px;background:var(--card)}
+.fatnote{font-size:11.5px;color:var(--ink-faint);padding:10px 16px;border-top:1px solid var(--rule);line-height:1.5}
+.gaterow{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:14px}
+.gaterow .lv{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-soft)}
+.armed{display:inline-flex;align-items:center;gap:7px;font-family:"Barlow Condensed",sans-serif;
+  text-transform:uppercase;letter-spacing:.14em;font-size:11px;font-weight:600;color:var(--ink-faint);margin-top:10px}
+.armed .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-faint)}
+.armed.hot{color:var(--cal)}
+.armed.hot .dot{background:var(--cal)}
+.armed.rec{color:var(--warn)}
+.armed.rec .dot{background:var(--warn);animation:pulse 1.2s infinite}
+
+/* ---------- ssvep ---------- */
+.ssvep{margin-top:22px}
+.ssvep.hidden{display:none}
+.ssvwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0}
+@media(max-width:900px){.ssvwrap{grid-template-columns:1fr}}
+.ssvwrap .l{padding:16px;border-right:1px solid var(--rule)}
+@media(max-width:900px){.ssvwrap .l{border-right:0;border-bottom:1px solid var(--rule)}}
+.ssvwrap .r{padding:16px}
+
+.warnbox{border:1px solid var(--warn);border-left-width:3px;border-radius:var(--panel-radius);
+  padding:12px 14px;background:rgba(166,46,24,.05);margin-bottom:14px}
+.warnbox h4{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;
+  font-size:11px;font-weight:600;color:var(--warn);margin:0 0 6px}
+.warnbox p{margin:0 0 9px;font-size:12.5px;line-height:1.5;color:var(--ink-soft)}
+.ack{display:flex;align-items:flex-start;gap:11px;cursor:pointer;user-select:none;font-size:12.5px}
+.ack input{position:absolute;opacity:0;width:0;height:0}
+.ack .box{flex:0 0 auto;width:18px;height:18px;border:1px solid var(--warn);border-radius:1px;
+  position:relative;margin-top:1px;background:var(--paper)}
+.ack input:checked + .box::after{content:"";position:absolute;inset:3px;background:var(--warn)}
+.ack input:focus-visible + .box{outline:2px solid var(--cal);outline-offset:2px}
+
+.targets{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.tgt{position:relative;aspect-ratio:1.45;border:1px solid var(--ink);border-radius:var(--panel-radius);
+  background:var(--paper-deep);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.tgt .flick{position:absolute;inset:0;background:#000;opacity:0}
+.tgt .lab{position:relative;font-family:"Barlow Condensed",sans-serif;font-weight:600;
+  font-size:26px;letter-spacing:.02em;color:var(--ink);mix-blend-mode:difference;filter:invert(1)}
+.tgt .hz{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-family:"IBM Plex Mono",monospace;
+  font-size:10px;color:var(--ink-faint);z-index:2}
+.tgt.cue{outline:3px solid var(--cal);outline-offset:2px}
+.tgt.hit{outline:3px solid var(--warn);outline-offset:2px}
+
+.rhorow{display:grid;grid-template-columns:64px 1fr 52px;align-items:center;gap:10px;font-size:12px;margin-bottom:7px}
+.rhorow .rn{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600}
+.rhorow .rt{height:10px;background:var(--paper-deep);border:1px solid var(--rule);border-radius:1px;overflow:hidden;position:relative}
+.rhorow .rt span{display:block;height:100%;background:var(--ink);width:0;transition:width .1s linear}
+.rhorow .rt i{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--warn);opacity:.7}
+.rhorow.win .rt span{background:var(--cal)}
+
+/* ---------- drowsiness ---------- */
+.drowse{margin-top:22px}
+.drowse.hidden{display:none}
+.dzwrap{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:0}
+@media(max-width:900px){.dzwrap{grid-template-columns:1fr}}
+.dzwrap .l{padding:16px;border-right:1px solid var(--rule)}
+@media(max-width:900px){.dzwrap .l{border-right:0;border-bottom:1px solid var(--rule)}}
+#dzTrend{display:block;width:100%;height:196px;background:var(--card);border-bottom:1px solid var(--rule)}
+#dzBlink{display:block;width:100%;height:150px;background:var(--card)}
+
+.gauge{border:1px solid var(--ink);border-radius:var(--panel-radius);background:var(--card);
+  padding:16px 18px;margin-bottom:14px}
+.gauge .lbl{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.16em;
+  font-size:10px;font-weight:600;color:var(--ink-faint)}
+.gauge .big{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.02em;
+  font-weight:600;font-size:42px;line-height:1.02;margin:2px 0 6px}
+.gauge .track{height:12px;background:var(--paper-deep);border:1px solid var(--rule);
+  border-radius:1px;overflow:hidden;position:relative}
+.gauge .track span{display:block;height:100%;width:0;transition:width .25s linear}
+.gauge .track i{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--ink);opacity:.45}
+.gauge .sub{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);margin-top:7px}
+.gauge.alert{border-color:var(--warn);background:rgba(166,46,24,.06)}
+.gauge.alert .big{color:var(--warn)}
+
+.blinkpip{display:flex;gap:3px;flex-wrap:wrap;margin-top:12px;min-height:16px}
+.blinkpip i{width:3px;border-radius:1px;background:var(--cal);opacity:.55}
+.blinkpip i.long{background:var(--warn);opacity:.85}
+
+/* ---------- focus ---------- */
+.focus{margin-top:22px}
+.focus.hidden{display:none}
+.fcwrap{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:0}
+@media(max-width:900px){.fcwrap{grid-template-columns:1fr}}
+.fcwrap .l{padding:16px;border-right:1px solid var(--rule)}
+@media(max-width:900px){.fcwrap .l{border-right:0;border-bottom:1px solid var(--rule)}}
+#fcTrend{display:block;width:100%;height:210px;background:var(--card);border-bottom:1px solid var(--rule)}
+
+.bigclock{border:1px solid var(--ink);border-radius:var(--panel-radius);background:var(--card);
+  padding:18px 20px;margin-bottom:14px}
+.bigclock .lbl{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.16em;
+  font-size:10px;font-weight:600;color:var(--ink-faint)}
+.bigclock .clk{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:46px;
+  line-height:1.05;margin:3px 0 2px;font-variant-numeric:tabular-nums}
+.bigclock .sub{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft)}
+.bigclock.deep{border-color:var(--cal);background:rgba(13,91,87,.06)}
+.bigclock.deep .clk{color:var(--cal)}
+
+.sessrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.sess{border:1px solid var(--rule);border-radius:var(--panel-radius);padding:11px 13px;background:var(--paper-deep)}
+.sess .k{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.13em;
+  font-size:10px;font-weight:600;color:var(--ink-faint);display:block}
+.sess .v{font-family:"IBM Plex Mono",monospace;font-size:18px;font-variant-numeric:tabular-nums}
+.sess .v small{font-size:10px;color:var(--ink-soft)}
+
+.statebar{display:flex;height:16px;margin-top:14px;border:1px solid var(--rule);
+  border-radius:1px;overflow:hidden;background:var(--paper-deep)}
+.statebar i{display:block;height:100%}
+.statebar i.deep{background:var(--cal)}
+.statebar i.eng{background:var(--grid-bold)}
+.statebar i.idle{background:transparent}
+.statekey{display:flex;gap:14px;margin-top:7px;font-size:11px;color:var(--ink-soft)}
+.statekey span{display:inline-flex;align-items:center;gap:5px}
+.statekey b{width:11px;height:7px;display:inline-block;border-radius:1px}
+
+/* ---------- edr ---------- */
+.edr{margin-top:22px}
+.edr.hidden{display:none}
+.edrwrap{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:0}
+@media(max-width:900px){.edrwrap{grid-template-columns:1fr}}
+.edrwrap .l{padding:16px;border-right:1px solid var(--rule)}
+@media(max-width:900px){.edrwrap .l{border-right:0;border-bottom:1px solid var(--rule)}}
+#edrTrace{display:block;width:100%;height:212px;background:var(--card);border-bottom:1px solid var(--rule)}
+#edrSpec{display:block;width:100%;height:170px;background:var(--card)}
+/* ---------- gaze ---------- */
+.gaze{margin-top:22px}
+.gaze.hidden{display:none}
+.gzwrap{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:0}
+@media(max-width:900px){.gzwrap{grid-template-columns:1fr}}
+.gzwrap .l{padding:16px;border-right:1px solid var(--rule)}
+@media(max-width:900px){.gzwrap .l{border-right:0;border-bottom:1px solid var(--rule)}}
+.gzwrap .r{padding:16px}
+#gzPad{display:block;width:100%;height:300px;background:var(--card);
+  border:1px solid var(--ink);border-radius:var(--panel-radius)}
+
+.menu{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.mi{border:1px solid var(--rule);border-radius:var(--panel-radius);padding:13px 14px;
+  background:var(--paper-deep);position:relative;overflow:hidden;transition:border-color .15s}
+.mi .mn{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.1em;
+  font-weight:600;font-size:14px;position:relative;z-index:2}
+.mi .mk{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-faint);
+  position:relative;z-index:2;margin-top:2px}
+.mi .fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--cal);opacity:.18;z-index:1}
+.mi.on{border-color:var(--cal)}
+.mi.picked{border-color:var(--warn);background:rgba(166,46,24,.07)}
+
+.calstep{margin-top:14px;padding:13px 14px;border:1px solid var(--cal);border-radius:var(--panel-radius);
+  background:rgba(13,91,87,.05);display:none}
+.calstep.on{display:block}
+.calstep .cs{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;
+  font-size:11px;font-weight:600;color:var(--cal);margin-bottom:5px}
+.calstep .ct{font-size:14px;font-weight:500}
+.calstep .cb{height:5px;background:var(--paper-deep);border:1px solid var(--rule);margin-top:9px;overflow:hidden}
+.calstep .cb span{display:block;height:100%;background:var(--cal);width:0}
+
+.breathe{margin-top:16px;display:flex;align-items:center;gap:14px}
+.bcircle{flex:0 0 auto;width:62px;height:62px;border-radius:50%;border:1px solid var(--ink);
+  background:var(--paper-deep);position:relative;overflow:hidden}
+.bcircle span{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;
+  border-radius:50%;background:var(--cal);opacity:.22;transform:scale(.35);transition:transform .12s linear}
+.bmeta{min-width:0;font-size:12.5px;color:var(--ink-soft);line-height:1.45}
+.bmeta b{display:block;font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;
+  letter-spacing:.12em;font-size:12px;color:var(--ink)}
+.rhorow .rv{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-soft);text-align:right}
+
+footer.notes{margin-top:34px;padding-top:18px;border-top:1px solid var(--rule);color:var(--ink-soft);font-size:12.5px}
+footer.notes p{margin:0 0 8px;max-width:80ch}
+footer.notes code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;background:var(--paper-deep);padding:1px 5px;border-radius:2px}
+.alert{margin:0 0 16px;padding:11px 14px;border-left:3px solid var(--warn);background:rgba(166,46,24,.06);font-size:13px;display:none}
+.alert.on{display:block}
+
+@media (prefers-reduced-motion:reduce){*{animation-duration:.001ms !important;transition-duration:.001ms !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="bar">
+  <div class="mark">
+    <h1>Axon</h1>
+    <p class="tagline">Biopotential chart recorder</p>
+    <p>Up to four BioAmp EXG Pills on one ESP32-S3. The board streams raw ADC counts; filtering, spectrum and pattern detection all run here in the browser.</p>
+  </div>
+  <div class="linkrow">
+    <span class="lamp" id="lamp"><span class="bulb"></span><span class="silk" id="lampText">Idle</span></span>
+    <button class="btn ghost" id="btnDemo">Run demo signal</button>
+    <button class="btn ghost" id="btnConnect">Connect USB</button>
+    <button class="btn" id="btnBle">Connect Bluetooth</button>
+  </div>
+</header>
+
+<div class="alert" id="alert"></div>
+
+<section class="recorder">
+  <div class="chartbox">
+    <canvas id="chart"></canvas>
+    <div class="chart-note" id="chartNote">No signal — connect the board or run the demo</div>
+    <div class="clip-flag" id="clipFlag">Clipping</div>
+  </div>
+  <div class="strip">
+    <div class="cell"><span class="k">Sweep</span><span class="v" id="mSweep">50<small> mm/s</small></span></div>
+    <div class="cell"><span class="k">Channels</span><span class="v" id="mChans">2</span></div>
+    <div class="cell"><span class="k">Rate</span><span class="v" id="mRate">—<small> SPS</small></span></div>
+    <div class="cell" id="linkCell" style="display:none"><span class="k">Link</span><span class="v" id="mLink">—</span></div>
+    <div class="cell"><span class="k">Scale</span><span class="v" id="mScale">—<small> µV/div</small></span></div>
+    <div class="cell push bpm" id="bpmCell" style="display:none"><span class="k">Heart rate</span><span class="v" id="mBpm">—<small> bpm</small></span></div>
+  </div>
+</section>
+
+<div class="chanbar" id="chanbar"></div>
+
+<div class="deck">
+
+  <section class="card">
+    <h2>Signal chain <span id="chainSummary">—</span></h2>
+    <div class="body">
+      <div class="modes" role="group" aria-label="Signal type">
+        <button data-mode="emg" aria-pressed="true">EMG</button>
+        <button data-mode="ecg" aria-pressed="false">ECG</button>
+        <button data-mode="eog" aria-pressed="false">EOG</button>
+        <button data-mode="eeg" aria-pressed="false">EEG</button>
+      </div>
+      <p class="band" id="bandText"></p>
+
+      <div class="dial">
+        <div class="top"><label for="sHp">High-pass corner</label><output id="oHp"></output></div>
+        <input type="range" id="sHp" min="0" max="100" step="1" value="0">
+      </div>
+      <div class="dial">
+        <div class="top"><label for="sLp">Low-pass corner</label><output id="oLp"></output></div>
+        <input type="range" id="sLp" min="0" max="100" step="1" value="0">
+      </div>
+
+      <div class="switches">
+        <label class="sw"><input type="checkbox" id="tNotch" checked><span class="lever"></span>
+          <span class="txt"><b>Mains notch</b><i>Narrow rejection at the line frequency. Watch the spike vanish from the spectrum.</i></span></label>
+        <label class="sw"><input type="checkbox" id="tHarm" checked><span class="lever"></span>
+          <span class="txt"><b>Second harmonic notch</b><i>Kills 2× line frequency, which lands inside the EMG band.</i></span></label>
+        <label class="sw"><input type="checkbox" id="tDc" checked><span class="lever"></span>
+          <span class="txt"><b>Baseline removal</b><i>Strips the VCC/2 offset and electrode drift.</i></span></label>
+        <label class="sw"><input type="checkbox" id="tEnv"><span class="lever"></span>
+          <span class="txt"><b>Envelope</b><i>Rectifies and smooths — activation level instead of the raw burst.</i></span></label>
+        <label class="sw"><input type="checkbox" id="tAuto" checked><span class="lever"></span>
+          <span class="txt"><b>Auto scale</b><i>Fits each lane independently. Off holds the fixed scale below.</i></span></label>
+      </div>
+
+      <div class="rowset">
+        <div class="field"><label for="selMains">Line frequency</label>
+          <select id="selMains"><option value="50" selected>50 Hz</option><option value="60">60 Hz</option></select></div>
+        <div class="field"><label for="selSweep">Sweep speed</label>
+          <select id="selSweep"><option value="12.5">12.5 mm/s</option><option value="25">25 mm/s</option><option value="50" selected>50 mm/s</option><option value="100">100 mm/s</option></select></div>
+        <div class="field"><label for="selBaud">Baud rate</label>
+          <select id="selBaud"><option value="115200">115200</option><option value="460800" selected>460800</option><option value="921600">921600</option></select></div>
+        <div class="field"><label for="selDemoCh">Demo channels</label>
+          <select id="selDemoCh"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div>
+        <div class="field"><label for="numGain">Amp gain (R6/R12)</label>
+          <input type="number" id="numGain" value="2420" min="1" step="1"></div>
+        <div class="field"><label for="numScale">Fixed scale µV/div</label>
+          <input type="number" id="numScale" value="200" min="1" step="10" disabled></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Spectrum <span>512-point Hann, 0.98 Hz bins</span></h2>
+    <canvas id="spectrum"></canvas>
+    <div class="legend">
+      <i><span class="key" style="background:var(--ink)"></span> After filtering</i>
+      <i><span class="key" style="background:var(--grid-bold)"></span> Raw input</i>
+      <i><span class="key" style="background:var(--cal)"></span> Passband</i>
+      <i style="margin-left:auto">Channel <select id="selSpecCh" style="width:auto;padding:2px 5px;font-size:11px"></select></i>
+    </div>
+    <div class="actions">
+      <button class="btn ghost sm" id="btnCal">Inject 1 mV cal pulse</button>
+      <button class="btn ghost sm" id="btnFreeze">Freeze</button>
+      <button class="btn ghost sm" id="btnSave">Save CSV</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- ============ DETECTION ============ -->
+<section class="card detect">
+  <h2>Pattern detection <span id="detectSub">k-nearest-neighbour over Hudgins features, trained in this tab</span></h2>
+  <div class="split">
+    <div class="left">
+
+      <div class="pane" id="paneEmgL">
+        <p class="howto">Teach it by example. Hold a posture, record three seconds, repeat for each gesture. Two or three classes at six seconds each is usually enough. Record a <b>rest</b> class too — without one, the model has to force every idle moment into a gesture. More channels around the forearm means more separable gestures.</p>
+        <div class="trainrow">
+          <div class="field"><label for="clsName">Gesture name</label>
+            <input type="text" id="clsName" value="fist" maxlength="14"></div>
+          <button class="btn" id="btnRecord">Record 3 s</button>
+        </div>
+        <div class="rec-state" id="recState"></div>
+        <div class="classlist" id="classList"></div>
+        <div class="actions" style="padding:14px 0 0;margin-top:12px">
+          <button class="btn sm" id="btnDetect" disabled>Start detecting</button>
+          <button class="btn ghost sm" id="btnClearModel">Reset model</button>
+        </div>
+      </div>
+
+      <div class="pane" id="paneEcgL">
+        <p class="howto">Beats are found the Pan-Tompkins way: differentiate the band-passed trace, square it, integrate over a 150 ms window, then take an adaptive threshold with a 200 ms refractory period. Variability metrics follow from the RR intervals and want about a minute of clean trace before they settle.</p>
+        <div class="stats" id="ecgStats"></div>
+        <div class="evlog" id="ecgLog"></div>
+      </div>
+
+      <div class="pane" id="paneEogL">
+        <p class="howto">Events are classified by shape. A blink is a fast bipolar spike under about 400 ms; a saccade is a step that holds its new level. Direction follows electrode polarity, so if left and right come out swapped, swap IN+ and IN− rather than changing anything here.</p>
+        <div class="stats" id="eogStats"></div>
+        <div class="evlog" id="eogLog"></div>
+      </div>
+
+      <div class="pane" id="paneEegL">
+        <p class="howto">Band powers come from the same FFT feeding the spectrum. The honest test: sit still with eyes open, then close them. Occipital alpha should climb within a couple of seconds. If it doesn't, the electrodes or the reference are the problem, not the maths.</p>
+        <div class="stats" id="eegStats"></div>
+      </div>
+
+    </div>
+    <div class="right">
+      <div class="verdict">
+        <div class="lbl" id="vLbl">Awaiting signal</div>
+        <div class="big" id="vBig">—</div>
+        <div class="sub" id="vSub"></div>
+      </div>
+      <div class="bars" id="bars"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FATIGUE ============ -->
+<section class="card fatigue" id="fatigueCard">
+  <h2>Muscle fatigue <span>median frequency shift · JASA quadrant</span></h2>
+  <div class="fatwrap">
+    <div class="l">
+      <p class="howto">Hold a steady submaximal contraction — around 30–50% of maximum, for 30 to 90 seconds. As motor units tire, conduction velocity drops and the spectrum slides downward while amplitude climbs to compensate. Only the fall in median frequency is fatigue; a rise in amplitude alone just means you pushed harder.</p>
+
+      <div class="rowset" style="margin-top:0">
+        <div class="field"><label for="selFatCh">Channel</label><select id="selFatCh"></select></div>
+        <div class="field"><label for="selFatBand">Analysis band</label>
+          <select id="selFatBand"><option value="20,200" selected>20–200 Hz</option><option value="20,150">20–150 Hz</option><option value="30,180">30–180 Hz</option></select></div>
+      </div>
+
+      <div class="dial">
+        <div class="gaterow"><label for="sGate" style="font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.13em;font-size:11px;font-weight:600;color:var(--ink-soft)">Activation gate</label>
+          <span class="lv" id="gateLv">—</span></div>
+        <input type="range" id="sGate" min="0" max="100" step="1" value="35">
+      </div>
+
+      <div class="armed" id="fatArmed"><span class="dot"></span><span id="fatArmedTxt">Idle</span></div>
+
+      <div class="actions" style="padding:14px 0 0;margin-top:10px">
+        <button class="btn sm" id="btnFatStart">Start test</button>
+        <button class="btn ghost sm" id="btnFatCal">Calibrate at rest</button>
+        <button class="btn ghost sm" id="btnFatReset">Reset</button>
+      </div>
+
+      <div class="verdict" style="margin-top:16px">
+        <div class="lbl" id="fLbl">No test running</div>
+        <div class="big" id="fBig" style="font-size:34px">—</div>
+        <div class="sub" id="fSub">Start a test and hold the contraction</div>
+      </div>
+
+      <div class="stats" id="fatStats"></div>
+    </div>
+    <div class="r">
+      <canvas id="fatTrend"></canvas>
+      <canvas id="fatJasa"></canvas>
+      <p class="fatnote" id="fatNote">The analysis runs on its own 20–200 Hz band with mains harmonics notched out, so the display sliders above do not affect these numbers. Epochs are 1.02 s windows at 50% overlap, and only windows above the activation gate are counted — rest pauses do not advance the clock.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SSVEP ============ -->
+<section class="card ssvep hidden" id="ssvepCard">
+  <h2>SSVEP <span>canonical correlation against harmonic references</span></h2>
+  <div class="ssvwrap">
+    <div class="l">
+      <div class="warnbox">
+        <h4>Photosensitivity warning</h4>
+        <p>The targets below flicker between roughly 8 and 15 Hz, which is within the band that can provoke seizures in people with photosensitive epilepsy — around one person in four thousand. Do not use this if you have a history of seizures or if anyone nearby does. Stop immediately if you feel dizzy, nauseous, disoriented, or notice any twitching. Keep the room lit, sit back from the screen, and do not run it for long stretches.</p>
+        <label class="ack"><input type="checkbox" id="ssvAck"><span class="box"></span>
+          <span>I have read this and want to enable the flickering stimulus.</span></label>
+      </div>
+
+      <div class="targets" id="ssvTargets"></div>
+
+      <div class="rowset" style="margin-top:0">
+        <div class="field"><label for="ssvWin">Decision window</label>
+          <select id="ssvWin"><option value="1">1.0 s</option><option value="2">2.0 s</option><option value="3" selected>3.0 s</option><option value="4">4.0 s</option></select></div>
+        <div class="field"><label for="ssvHarm">Harmonics</label>
+          <select id="ssvHarm"><option value="1">Fundamental only</option><option value="2" selected>Plus 2nd</option><option value="3">Plus 2nd and 3rd</option></select></div>
+        <div class="field"><label for="ssvFreqs">Frequencies (Hz)</label>
+          <input type="text" id="ssvFreqs" value="12, 14, 16, 18"></div>
+        <div class="field"><label for="ssvSim">Demo gaze</label>
+          <select id="ssvSim"><option value="-1">None</option></select></div>
+      </div>
+
+      <div class="dial">
+        <div class="gaterow"><label for="ssvContrast" style="font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.13em;font-size:11px;font-weight:600;color:var(--ink-soft)">Flicker contrast</label>
+          <span class="lv" id="ssvContrastLv">70%</span></div>
+        <input type="range" id="ssvContrast" min="10" max="100" step="5" value="70">
+      </div>
+
+      <div class="actions" style="padding:14px 0 0;margin-top:8px">
+        <button class="btn sm" id="btnSsvStart" disabled>Start stimulus</button>
+        <button class="btn ghost sm" id="btnSsvTest" disabled>Accuracy test</button>
+      </div>
+    </div>
+
+    <div class="r">
+      <div class="verdict">
+        <div class="lbl" id="sLbl">Stimulus off</div>
+        <div class="big" id="sBig" style="font-size:38px">—</div>
+        <div class="sub" id="sSub">Place electrodes at Oz and enable the stimulus</div>
+      </div>
+      <div id="ssvBars"></div>
+      <div class="stats" id="ssvStats" style="margin-top:14px"></div>
+      <p class="fatnote" style="border-top:1px solid var(--rule);margin:14px 0 0;padding:12px 0 0">
+        Electrodes go at <b>Oz</b> — on the midline about 2–3 cm above the inion, the bony bump at the back of the skull. Reference on the earlobe or mastoid. This is the one signal on this page where placement is not negotiable: move 5 cm off and the response vanishes. The red tick on each bar is the significance threshold for the current window length; a bar has to clear it before the verdict changes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DROWSINESS ============ -->
+<section class="card drowse hidden" id="drowseCard">
+  <h2>Drowsiness <span>blink dynamics from a forehead electrode</span></h2>
+  <div class="dzwrap">
+    <div class="l">
+      <p class="howto">Electrodes go on the <b>forehead</b>, above the eyebrows — no hair, no gel in your scalp. What you get there is dominated by eye movement rather than cortical rhythm, and for this purpose that is an advantage: the clinical standard for sleepiness, PERCLOS, is built on eyelid behaviour, not brain waves.</p>
+      <p class="howto" style="margin-top:-6px">Three signs are tracked. Blinks get <b>longer</b> as you tire, they cluster into bursts, and the theta/alpha ratio creeps up. Long slow blinks are the earliest and most reliable of the three.</p>
+
+      <div class="rowset" style="margin-top:0">
+        <div class="field"><label for="dzWin">Averaging window</label>
+          <select id="dzWin"><option value="30">30 s</option><option value="60" selected>60 s</option><option value="120">2 min</option></select></div>
+        <div class="field"><label for="dzSim">Demo state</label>
+          <select id="dzSim"><option value="0" selected>Alert</option><option value="1">Getting tired</option><option value="2">Drowsy</option></select></div>
+      </div>
+
+      <div class="dial">
+        <div class="gaterow"><label for="dzThr" style="font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.13em;font-size:11px;font-weight:600;color:var(--ink-soft)">Blink threshold</label>
+          <span class="lv" id="dzThrLv">—</span></div>
+        <input type="range" id="dzThr" min="40" max="600" step="10" value="180">
+      </div>
+
+      <div class="actions" style="padding:14px 0 0;margin-top:8px">
+        <button class="btn sm" id="btnDzCal">Set baseline</button>
+        <button class="btn ghost sm" id="btnDzAlarm">Alarm: off</button>
+        <button class="btn ghost sm" id="btnDzReset">Reset</button>
+      </div>
+
+      <div class="blinkpip" id="dzPips"></div>
+      <div class="stats" id="dzStats" style="margin-top:14px"></div>
+    </div>
+    <div class="r">
+      <div class="gauge" id="dzGauge">
+        <div class="lbl" id="dLbl">No data</div>
+        <div class="big" id="dBig">—</div>
+        <div class="track"><span id="dTrack"></span><i style="left:40%"></i><i style="left:70%"></i></div>
+        <div class="sub" id="dSub">set a baseline while you are alert, then keep working</div>
+      </div>
+      <canvas id="dzTrend"></canvas>
+      <canvas id="dzBlink"></canvas>
+      <p class="fatnote" style="border-top:1px solid var(--rule)">
+        The score is relative to <b>your own alert baseline</b>, not an absolute scale — blink rate varies several-fold between people, so a raw number would mean nothing without that reference. Set the baseline when you are genuinely awake, ideally early in a session. Screen work suppresses blinking on its own, so expect the rate to read low whenever you are concentrating hard; that is why blink duration carries more weight here than blink count.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOCUS ============ -->
+<section class="card focus hidden" id="focusCard">
+  <h2>Focus time <span>blink suppression during visual attention</span></h2>
+  <div class="fcwrap">
+    <div class="l">
+      <p class="howto">Attention to a visual task suppresses blinking — a well-established effect, and the same measurement that drives the drowsiness card, read the other way round. Blinks also cluster at natural breakpoints: the end of a paragraph, a finished thought. Long gaps between them mark sustained engagement.</p>
+      <p class="howto" style="margin-top:-6px">This counts <b>visual engagement</b>, not concentration in general. Thinking with your eyes closed, or working away from a screen, reads as idle here. Dry air suppresses blinking and tired eyes increase it, so compare a session to your own others rather than to anyone else's.</p>
+      <p class="howto" style="margin-top:-6px">Tiredness and focus both act on blink rate and cannot be fully separated from it. When the drowsiness card above is scoring high, this one will understate your focus and will say so rather than quietly report a low number.</p>
+
+      <div class="rowset" style="margin-top:0">
+        <div class="field"><label for="fcDeep">Deep-focus gap</label>
+          <select id="fcDeep"><option value="6">6 s between blinks</option><option value="8" selected>8 s</option><option value="12">12 s</option></select></div>
+        <div class="field"><label for="fcSim">Demo activity</label>
+          <select id="fcSim"><option value="0">Idle / looking around</option><option value="1" selected>Reading</option><option value="2">Deep focus</option></select></div>
+      </div>
+
+      <div class="actions" style="padding:14px 0 0;margin-top:8px">
+        <button class="btn sm" id="btnFcStart">Start session</button>
+        <button class="btn ghost sm" id="btnFcReset">Reset</button>
+      </div>
+
+      <div class="statebar" id="fcBar"></div>
+      <div class="statekey">
+        <span><b style="background:var(--cal)"></b> deep</span>
+        <span><b style="background:var(--grid-bold)"></b> engaged</span>
+        <span><b style="background:var(--paper-deep);border:1px solid var(--rule)"></b> idle</span>
+      </div>
+
+      <div class="sessrow">
+        <div class="sess"><span class="k">Longest streak</span><span class="v" id="fcBest">—<small> min</small></span></div>
+        <div class="sess"><span class="k">Streaks</span><span class="v" id="fcRuns">0</span></div>
+      </div>
+
+      <div class="stats" id="fcStats" style="margin-top:10px"></div>
+    </div>
+    <div class="r">
+      <div class="bigclock" id="fcClock">
+        <div class="lbl" id="fLbl2">Session not started</div>
+        <div class="clk" id="fClk">0:00</div>
+        <div class="sub" id="fSub2">deep focus time · press start when you begin working</div>
+      </div>
+      <canvas id="fcTrend"></canvas>
+      <p class="fatnote" style="border-top:1px solid var(--rule)">
+        The bar above is a timeline of the session: teal where gaps between blinks were long enough to count as deep focus, coral for ordinary engaged work, blank where blinking was frequent. The trend below plots the running gap between blinks, so a rising line means attention deepening. Expect a natural rhythm rather than a flat line — even good concentration comes in waves of a few minutes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EDR ============ -->
+<section class="card edr hidden" id="edrCard">
+  <h2>Respiration from ECG <span>amplitude modulation and sinus arrhythmia</span></h2>
+  <div class="edrwrap">
+    <div class="l">
+      <p class="howto">Breathing moves the chest, which tilts the heart relative to the electrodes, so R-wave height rises and falls with the breath. Rate is modulated too: the heart speeds up on inhalation and slows on exhalation. Both are derived from the same ECG, with no second sensor.</p>
+      <p class="howto" style="margin-top:-6px"><b>Sinus arrhythmia is the default</b> because it is the more robust of the two. R-wave amplitude also responds to electrode drift, posture shifts and cable movement, any of which can be larger than the roughly 15% respiratory swing — so use the amplitude method as a cross-check rather than a primary reading.</p>
+
+      <div class="rowset" style="margin-top:0">
+        <div class="field"><label for="edrMethod">Primary method</label>
+          <select id="edrMethod"><option value="rsa" selected>Sinus arrhythmia</option><option value="am">R-wave amplitude</option><option value="fuse">Both, agreement-weighted</option></select></div>
+        <div class="field"><label for="edrSim">Demo breathing</label>
+          <select id="edrSim"><option value="0">Off</option><option value="12" selected>12 /min</option><option value="6">6 /min (paced)</option><option value="20">20 /min</option></select></div>
+      </div>
+
+      <div class="breathe">
+        <div class="bcircle"><span id="bOrb"></span></div>
+        <div class="bmeta"><b id="bPhase">Waiting</b><span id="bHint">needs about 30 s of steady ECG before the estimate settles</span></div>
+      </div>
+
+      <div class="verdict" style="margin-top:16px">
+        <div class="lbl" id="eLbl">No estimate</div>
+        <div class="big" id="eBig" style="font-size:36px">—</div>
+        <div class="sub" id="eSub">Switch to ECG mode and let the trace run</div>
+      </div>
+
+      <div class="stats" id="edrStats"></div>
+
+      <div class="actions" style="padding:14px 0 0;margin-top:8px">
+        <button class="btn ghost sm" id="btnEdrReset">Reset</button>
+      </div>
+    </div>
+    <div class="r">
+      <canvas id="edrTrace"></canvas>
+      <canvas id="edrSpec"></canvas>
+      <p class="fatnote" style="border-top:1px solid var(--rule)">
+        The two methods rest on different physics — one on electrode geometry, one on vagal control of the sinus node — so when they agree the estimate is trustworthy, and when they diverge something is off: usually movement artefact, or a breath rate outside the 0.1–0.6 Hz band either can resolve. RSA amplitude falls with age and rises with fitness; it is a real parasympathetic measure, but a noisy one over short windows.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GAZE ============ -->
+<section class="card gaze hidden" id="gazeCard">
+  <h2>Gaze control <span>two-channel EOG · calibrated selection menu</span></h2>
+  <div class="gzwrap">
+    <div class="l">
+      <p class="howto">The eye is a standing dipole — cornea positive, retina negative — so rotating it swings the potential at electrodes on either side. <b>CH1 is horizontal</b>: one electrode at the outer corner of each eye. That single channel gives a working two-item menu on its own.</p>
+      <p class="howto" style="margin-top:-6px">A second Pill adds <b>CH2 vertical</b> — above the brow and below the lower lid of one eye — which brings the menu to four items and lets blinks be told apart from a genuine look upward. The axis mode below follows your channel count automatically.</p>
+
+      <div class="rowset" style="margin-top:0">
+        <div class="field"><label for="gzDwell">Dwell to select</label>
+          <select id="gzDwell"><option value="0.8">0.8 s</option><option value="1.2" selected>1.2 s</option><option value="1.8">1.8 s</option></select></div>
+        <div class="field"><label for="gzAxes">Axes</label>
+          <select id="gzAxes"><option value="2">Both (4 items)</option><option value="1">Horizontal only</option></select></div>
+      </div>
+
+      <div class="dial">
+        <div class="gaterow"><label for="gzSens" style="font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.13em;font-size:11px;font-weight:600;color:var(--ink-soft)">Sensitivity</label>
+          <span class="lv" id="gzSensLv">—</span></div>
+        <input type="range" id="gzSens" min="20" max="140" step="5" value="60">
+      </div>
+
+      <div class="calstep" id="calStep">
+        <div class="cs" id="calPhase">Calibrating</div>
+        <div class="ct" id="calInstr">Look centre</div>
+        <div class="cb"><span id="calBar"></span></div>
+      </div>
+
+      <div class="actions" style="padding:14px 0 0;margin-top:8px">
+        <button class="btn sm" id="btnGzCal">Calibrate</button>
+        <button class="btn ghost sm" id="btnGzRun" disabled>Start menu</button>
+        <button class="btn ghost sm" id="btnGzReset">Reset</button>
+      </div>
+
+      <div class="menu" id="gzMenu"></div>
+    </div>
+    <div class="r">
+      <canvas id="gzPad"></canvas>
+      <div class="verdict" style="margin-top:14px">
+        <div class="lbl" id="gLbl">Not calibrated</div>
+        <div class="big" id="gBig" style="font-size:36px">—</div>
+        <div class="sub" id="gSub">Run the calibration first — it takes about 25 seconds</div>
+      </div>
+      <div class="stats" id="gzStats" style="margin-top:14px"></div>
+      <p class="fatnote" style="border-top:1px solid var(--rule);margin:14px 0 0;padding:12px 0 0">
+        Eye position is nearly DC, so the trace drifts back toward centre within a few seconds of holding a gaze — that is the amplifier's high-pass, not your eyes. The decoder therefore works on the <b>step</b> at the moment of the saccade rather than the absolute level, which is why a selection is made shortly after you move your eyes and not while you hold them still. Blinks are detected and suppressed so they do not register as an upward look.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="notes">
+  <p><b>Wiring more than one channel.</b> Every Pill shares the same 3V3 and GND, and every <code>REF</code> goes to the same bony landmark. Separate references per Pill make the lanes fight each other with common-mode noise. Outputs go to GPIO4–7, all on ADC1.</p>
+  <p><b>Baud.</b> Four channels at 500 SPS is roughly 10 kB/s, too close to 115200 for comfort — the multi-channel sketch uses 460800, so set the same here before connecting.</p>
+  <p><b>What the classifier is.</b> Five features per channel — mean absolute value, waveform length, zero crossings, slope sign changes, RMS — computed over 512 ms windows, z-scored against your training set, then matched with distance-weighted 3-nearest-neighbours. It is the standard baseline in prosthetics EMG work, and it trains from about thirty examples, which is why it suits a browser tab rather than a neural network.</p>
+  <p><b>Not a medical device.</b> Nothing here diagnoses anything. Run the board from a battery or power bank while electrodes are on your body, and never while the host laptop is on a charger.</p>
+</footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* ======================= DSP primitives ======================= */
+
+function Biquad(){this.b0=1;this.b1=0;this.b2=0;this.a1=0;this.a2=0;this.z1=0;this.z2=0;}
+Biquad.prototype.process=function(x){
+  const y=this.b0*x+this.z1;
+  this.z1=this.b1*x-this.a1*y+this.z2;
+  this.z2=this.b2*x-this.a2*y;
+  return y;
+};
+Biquad.prototype.set=function(b0,b1,b2,a0,a1,a2){
+  this.b0=b0/a0;this.b1=b1/a0;this.b2=b2/a0;this.a1=a1/a0;this.a2=a2/a0;this.z1=0;this.z2=0;
+};
+Biquad.prototype.mag=function(f,fs){
+  const w=2*Math.PI*f/fs,c1=Math.cos(w),s1=Math.sin(w),c2=Math.cos(2*w),s2=Math.sin(2*w);
+  const nr=this.b0+this.b1*c1+this.b2*c2, ni=-(this.b1*s1+this.b2*s2);
+  const dr=1+this.a1*c1+this.a2*c2,       di=-(this.a1*s1+this.a2*s2);
+  return Math.sqrt((nr*nr+ni*ni)/(dr*dr+di*di));
+};
+function designLP(f,fc,fs,Q){const w=2*Math.PI*fc/fs,c=Math.cos(w),a=Math.sin(w)/(2*Q);f.set((1-c)/2,1-c,(1-c)/2,1+a,-2*c,1-a);}
+function designHP(f,fc,fs,Q){const w=2*Math.PI*fc/fs,c=Math.cos(w),a=Math.sin(w)/(2*Q);f.set((1+c)/2,-(1+c),(1+c)/2,1+a,-2*c,1-a);}
+function designNotch(f,f0,fs,Q){const w=2*Math.PI*f0/fs,c=Math.cos(w),a=Math.sin(w)/(2*Q);f.set(1,-2*c,1,1+a,-2*c,1-a);}
+const BW_Q1=0.54120,BW_Q2=1.30656;
+
+function DCBlock(){this.r=.99;this.xp=0;this.yp=0;}
+DCBlock.prototype.init=function(fc,fs){this.r=1-2*Math.PI*fc/fs;this.xp=0;this.yp=0;};
+DCBlock.prototype.process=function(x){const y=x-this.xp+this.r*this.yp;this.xp=x;this.yp=y;return y;};
+
+/* ======================= FFT ======================= */
+
+const NFFT=512;
+const fftCos=new Float32Array(NFFT/2),fftSin=new Float32Array(NFFT/2);
+for(let i=0;i<NFFT/2;i++){fftCos[i]=Math.cos(-2*Math.PI*i/NFFT);fftSin[i]=Math.sin(-2*Math.PI*i/NFFT);}
+const hann=new Float32Array(NFFT);
+for(let i=0;i<NFFT;i++) hann[i]=.5*(1-Math.cos(2*Math.PI*i/(NFFT-1)));
+const _re=new Float32Array(NFFT),_im=new Float32Array(NFFT);
+
+function fftMag(src,out){
+  for(let i=0;i<NFFT;i++){_re[i]=src[i]*hann[i];_im[i]=0;}
+  for(let i=1,j=0;i<NFFT;i++){
+    let bit=NFFT>>1;
+    for(;j&bit;bit>>=1) j^=bit;
+    j^=bit;
+    if(i<j){const t=_re[i];_re[i]=_re[j];_re[j]=t;}
+  }
+  for(let len=2;len<=NFFT;len<<=1){
+    const step=NFFT/len,half=len>>1;
+    for(let i=0;i<NFFT;i+=len){
+      for(let k=0;k<half;k++){
+        const t=k*step,wr=fftCos[t],wi=fftSin[t];
+        const xr=_re[i+k+half]*wr-_im[i+k+half]*wi;
+        const xi=_re[i+k+half]*wi+_im[i+k+half]*wr;
+        _re[i+k+half]=_re[i+k]-xr;_im[i+k+half]=_im[i+k]-xi;
+        _re[i+k]+=xr;_im[i+k]+=xi;
+      }
+    }
+  }
+  for(let i=0;i<NFFT/2;i++) out[i]=Math.sqrt(_re[i]*_re[i]+_im[i]*_im[i])/NFFT;
+}
+
+/* ======================= state ======================= */
+
+const FS=500, MAXPTS=8000, MAXCH=4;
+const PENS=["--pen1","--pen2","--pen3","--pen4"];
+const PINLBL=["GPIO4","GPIO5","GPIO6","GPIO7"];
+
+const PRESETS={
+  emg:{hp:70, lp:150,dc:20, label:"Muscle",hint:"Motor-unit bursts. The band starts above ECG and movement artefact on purpose."},
+  ecg:{hp:0.5,lp:45, dc:0.5,label:"Heart", hint:"Bridge the bandpass jumper on the Pill. Below 0.5 Hz is respiration and electrode drift."},
+  eog:{hp:0.5,lp:20, dc:0.5,label:"Eyes",  hint:"Eye position is nearly DC — a slow corner keeps the step shape of a saccade intact."},
+  eeg:{hp:0.5,lp:30, dc:0.5,label:"Brain", hint:"Alpha sits at 8–13 Hz. Close your eyes and it should climb out of the spectrum."}
+};
+
+const S={mode:"emg",hp:70,lp:150,mains:50,notch:true,harm:true,dc:true,env:false,auto:true,
+  sweep:50,gain:2420,fixedScale:200,baud:460800,running:false,source:null,frozen:false,
+  nch:2,specCh:0};
+
+const FEATWIN=256, FEATHOP=64, NFEAT=5;
+
+function makeChannel(i){
+  return {
+    i:i,on:true,pen:PENS[i],
+    dc:new DCBlock(),hp1:new Biquad(),hp2:new Biquad(),
+    lp1:new Biquad(),lp2:new Biquad(),n1:new Biquad(),n2:new Biquad(),useHp:false,
+    disp:new Float32Array(MAXPTS),last:0,
+    envBuf:new Float32Array(64),envI:0,envSum:0,
+    raw:2048,baseline:2048,rms:0,rmsAcc:0,rmsN:0,clip:0,scale:500,
+    fftRaw:new Float32Array(NFFT),fftFilt:new Float32Array(NFFT),
+    magRaw:new Float32Array(NFFT/2),magFilt:new Float32Array(NFFT/2),
+    win:new Float32Array(FEATWIN),winI:0,
+    feat:new Float32Array(NFEAT),
+    // dedicated fatigue chain: 20-200 Hz + mains harmonics, independent of the display filter
+    fbHp1:new Biquad(),fbHp2:new Biquad(),fbLp1:new Biquad(),fbLp2:new Biquad(),
+    fbN1:new Biquad(),fbN2:new Biquad(),fbN3:new Biquad(),
+    fbBuf:new Float32Array(NFFT),fbI:0,
+    magFb:new Float32Array(NFFT/2),
+    // SSVEP chain: 5-45 Hz keeps fundamentals and their harmonics, mains notched
+    svHp1:new Biquad(),svHp2:new Biquad(),svLp1:new Biquad(),svLp2:new Biquad(),
+    svN1:new Biquad(),svN2:new Biquad(),
+    svBuf:new Float32Array(SVN),svI:0
+  };
+}
+let CH=[];
+let dispN=0, fftIdx=0, sampleCount=0;
+let calRemain=0, calAmp=0;
+let logging=false; const logRows=[];
+let rateCount=0, rateT0=performance.now(), rateShown=0;
+let clipHold=0;
+
+function setChannelCount(n){
+  n=Math.max(1,Math.min(MAXCH,n));
+  S.nch=n;
+  // one Pill means horizontal only; the menu and calibration follow from this
+  GZ.axes = n>1 ? 2 : 1;
+  const ax=document.getElementById("gzAxes");
+  if(ax) ax.value=String(GZ.axes);
+  CH=[]; for(let i=0;i<n;i++) CH.push(makeChannel(i));
+  dispN=0;fftIdx=0;
+  if(S.specCh>=n) S.specCh=0;
+  if(FAT.ch>=n) FAT.ch=0;
+  rebuild();buildChannelBar();buildSpecPicker();buildFatPicker();resetClassifier();resetFatigue();
+  document.getElementById("mChans").textContent=n;
+}
+
+/* ======================= filter chain ======================= */
+
+function rebuild(){
+  const dcFc=Math.max(0.2,Math.min(S.hp,PRESETS[S.mode].dc));
+  for(const c of CH){
+    c.dc.init(dcFc,FS);
+    c.useHp=S.hp>=5;
+    if(c.useHp){designHP(c.hp1,S.hp,FS,BW_Q1);designHP(c.hp2,S.hp,FS,BW_Q2);}
+    designLP(c.lp1,S.lp,FS,BW_Q1);designLP(c.lp2,S.lp,FS,BW_Q2);
+    designNotch(c.n1,S.mains,FS,12);designNotch(c.n2,S.mains*2,FS,12);
+
+    designHP(c.fbHp1,FAT.lo,FS,BW_Q1); designHP(c.fbHp2,FAT.lo,FS,BW_Q2);
+    designLP(c.fbLp1,FAT.hi,FS,BW_Q1); designLP(c.fbLp2,FAT.hi,FS,BW_Q2);
+    designNotch(c.fbN1,S.mains,FS,20);
+    designNotch(c.fbN2,S.mains*2,FS,20);
+    designNotch(c.fbN3,S.mains*3,FS,20);
+
+    designHP(c.svHp1,5,FS,BW_Q1); designHP(c.svHp2,5,FS,BW_Q2);
+    designLP(c.svLp1,45,FS,BW_Q1);designLP(c.svLp2,45,FS,BW_Q2);
+    designNotch(c.svN1,S.mains,FS,20);
+    designNotch(c.svN2,S.mains*2,FS,20);
+  }
+  paintSummary();
+}
+function ssvepFilter(c,x){
+  let y=c.svHp1.process(x); y=c.svHp2.process(y);
+  y=c.svLp1.process(y);     y=c.svLp2.process(y);
+  y=c.svN1.process(y);      y=c.svN2.process(y);
+  return y;
+}
+function fatigueFilter(c,x){
+  let y=c.fbHp1.process(x); y=c.fbHp2.process(y);
+  y=c.fbLp1.process(y);     y=c.fbLp2.process(y);
+  y=c.fbN1.process(y); y=c.fbN2.process(y); y=c.fbN3.process(y);
+  return y;
+}
+function filterOne(c,x){
+  let y = S.dc ? c.dc.process(x) : x-2048;
+  if(c.useHp){y=c.hp1.process(y);y=c.hp2.process(y);}
+  y=c.lp1.process(y);y=c.lp2.process(y);
+  if(S.notch) y=c.n1.process(y);
+  if(S.harm)  y=c.n2.process(y);
+  return y;
+}
+function chainMag(f){
+  const c=CH[S.specCh]; if(!c) return 1;
+  let m=1;
+  if(c.useHp) m*=c.hp1.mag(f,FS)*c.hp2.mag(f,FS);
+  m*=c.lp1.mag(f,FS)*c.lp2.mag(f,FS);
+  if(S.notch) m*=c.n1.mag(f,FS);
+  if(S.harm)  m*=c.n2.mag(f,FS);
+  return m;
+}
+
+/* ======================= sample intake ======================= */
+
+function pushFrame(vals){
+  for(let k=0;k<CH.length;k++){
+    const c=CH[k];
+    let raw=vals[k];
+    if(!Number.isFinite(raw)) raw=c.raw;
+    c.raw=raw;
+    if(raw<40||raw>4055){c.clip=60;clipHold=60;} else if(c.clip>0) c.clip--;
+    c.baseline+=(raw-c.baseline)*0.0008;
+
+    let inp=raw;
+    if(calRemain>0) inp+=calAmp;
+
+    let y=filterOne(c,inp);
+    c.win[c.winI]=y; c.winI=(c.winI+1)%FEATWIN;
+
+    if(S.env){
+      const r=Math.abs(y);
+      c.envSum-=c.envBuf[c.envI];c.envBuf[c.envI]=r;c.envSum+=r;c.envI=(c.envI+1)&63;
+      y=c.envSum/64;
+    }
+    c.rmsAcc+=y*y;c.rmsN++;
+    if(c.rmsN>=125){c.rms=Math.sqrt(c.rmsAcc/c.rmsN);c.rmsAcc=0;c.rmsN=0;}
+
+    c.fftRaw[fftIdx]=c.raw-c.baseline;
+    c.fftFilt[fftIdx]=y;
+    c.fbBuf[c.fbI]=fatigueFilter(c,inp-c.baseline);
+    c.fbI=(c.fbI+1)%NFFT;
+    c.svBuf[c.svI]=ssvepFilter(c,inp-c.baseline);
+    c.svI=(c.svI+1)%SVN;
+
+    if(dispN<MAXPTS) c.disp[dispN]=y;
+    else{c.disp.copyWithin(0,1);c.disp[MAXPTS-1]=y;}
+    c.last=y;
+  }
+  if(calRemain>0) calRemain--;
+  if(clipHold>0) clipHold--;
+
+  dispN=Math.min(dispN+1,MAXPTS);
+  fftIdx=(fftIdx+1)%NFFT;
+  if(fftIdx===0) for(const c of CH){fftMag(c.fftRaw,c.magRaw);fftMag(c.fftFilt,c.magFilt);}
+
+  sampleCount++;
+  if(sampleCount%FEATHOP===0 && sampleCount>=FEATWIN) computeFeatures();
+  if(sampleCount%(NFFT/2)===0 && sampleCount>=NFFT) fatigueEpoch();
+  if(sampleCount%125===0 && SSV.running) ssvepDecide();   // re-decide 4x per second
+  if(sampleCount%250===0 && S.mode==="ecg") edrUpdate();  // twice a second
+
+  const p=CH[0];
+  if(p){
+    if(S.mode==="ecg") ecgStep(p.last);
+    else if(S.mode==="eog"){ eogStep(p.last); gazeStep(); }
+    else if(S.mode==="eeg") dzStep(p.last);
+  }
+
+  if(logging){
+    const parts=[];
+    for(const c of CH) parts.push(c.raw.toFixed(0));
+    for(const c of CH) parts.push(c.last.toFixed(2));
+    logRows.push(parts.join(","));
+  }
+  rateCount++;
+}
+
+/* ======================= Hudgins features ======================= */
+
+function computeFeatures(){
+  for(const c of CH){
+    let mav=0,wl=0,zc=0,ssc=0,sq=0;
+    const thr=2.0;
+    let prev=c.win[c.winI%FEATWIN], prevDiff=0;
+    for(let n=1;n<FEATWIN;n++){
+      const v=c.win[(c.winI+n)%FEATWIN];
+      mav+=Math.abs(v); sq+=v*v;
+      const d=v-prev; wl+=Math.abs(d);
+      if((prev>thr&&v<-thr)||(prev<-thr&&v>thr)) zc++;
+      if(n>1 && d*prevDiff<0 && (Math.abs(d)>thr||Math.abs(prevDiff)>thr)) ssc++;
+      prevDiff=d; prev=v;
+    }
+    c.feat[0]=mav/FEATWIN;
+    c.feat[1]=wl/FEATWIN;
+    c.feat[2]=zc;
+    c.feat[3]=ssc;
+    c.feat[4]=Math.sqrt(sq/FEATWIN);
+  }
+  if(S.mode==="emg") emgTick();
+}
+function currentVector(){
+  const v=[];
+  for(const c of CH){ if(!c.on) continue; for(let k=0;k<NFEAT;k++) v.push(c.feat[k]); }
+  return v;
+}
+
+/* ======================= kNN classifier ======================= */
+
+const MODEL={classes:[],samples:[],mu:null,sd:null,ready:false,detecting:false};
+let recTarget=null, recUntil=0, probSmooth={};
+
+function resetClassifier(){
+  MODEL.classes=[];MODEL.samples=[];MODEL.mu=null;MODEL.sd=null;MODEL.ready=false;MODEL.detecting=false;
+  probSmooth={};recTarget=null;
+  const b=document.getElementById("btnDetect");
+  if(b){b.disabled=true;b.textContent="Start detecting";}
+  const r=document.getElementById("btnRecord"); if(r) r.disabled=false;
+  const rs=document.getElementById("recState"); if(rs) rs.textContent="";
+  renderClassList();renderBars([]);
+  if(S.mode==="emg") setVerdict("Untrained","—","Record at least two classes to begin");
+}
+function fitNorm(){
+  if(!MODEL.samples.length) return;
+  const d=MODEL.samples[0].v.length;
+  const mu=new Float64Array(d), sd=new Float64Array(d);
+  for(const s of MODEL.samples) for(let i=0;i<d;i++) mu[i]+=s.v[i];
+  for(let i=0;i<d;i++) mu[i]/=MODEL.samples.length;
+  for(const s of MODEL.samples) for(let i=0;i<d;i++){const e=s.v[i]-mu[i];sd[i]+=e*e;}
+  for(let i=0;i<d;i++) sd[i]=Math.sqrt(sd[i]/MODEL.samples.length)||1;
+  MODEL.mu=mu;MODEL.sd=sd;
+  MODEL.ready=MODEL.classes.length>=2;
+}
+function classify(v){
+  if(!MODEL.ready||!MODEL.mu||v.length!==MODEL.mu.length) return null;
+  const d=MODEL.samples.map(s=>{
+    let acc=0;
+    for(let i=0;i<v.length;i++){
+      const e=(v[i]-MODEL.mu[i])/MODEL.sd[i]-(s.v[i]-MODEL.mu[i])/MODEL.sd[i];
+      acc+=e*e;
+    }
+    return {label:s.label,dist:Math.sqrt(acc)};
+  }).sort((a,b)=>a.dist-b.dist).slice(0,3);
+  const score={};
+  for(const cl of MODEL.classes) score[cl]=0;
+  let tot=0;
+  for(const nb of d){const w=1/(nb.dist+0.35);score[nb.label]+=w;tot+=w;}
+  for(const k in score) score[k]/=tot||1;
+  return {score,nearest:d[0].dist};
+}
+function emgTick(){
+  const now=performance.now();
+  if(recTarget){
+    if(now<recUntil){ MODEL.samples.push({label:recTarget,v:currentVector()}); return; }
+    recTarget=null;
+    document.getElementById("recState").textContent="";
+    document.getElementById("btnRecord").disabled=false;
+    fitNorm();renderClassList();
+    document.getElementById("btnDetect").disabled=!MODEL.ready;
+    if(!MODEL.detecting) setVerdict(MODEL.ready?"Ready":"Untrained","—",
+      MODEL.ready?"Press start detecting":"Record at least two classes to begin");
+    return;
+  }
+  if(!MODEL.detecting) return;
+  const r=classify(currentVector());
+  if(!r) return;
+  let best="",bp=0;
+  for(const k in r.score){
+    probSmooth[k]=(probSmooth[k]||0)*0.55+r.score[k]*0.45;
+    if(probSmooth[k]>bp){bp=probSmooth[k];best=k;}
+  }
+  renderBars(MODEL.classes.map(c=>({name:c,val:probSmooth[c]||0})).sort((a,b)=>b.val-a.val));
+  const far=r.nearest>4.5;
+  setVerdict(far?"Unrecognised":"Detected", far?"—":best.toUpperCase(),
+    (bp*100).toFixed(0)+"% · nearest distance "+r.nearest.toFixed(2));
+}
+
+/* ======================= ECG ======================= */
+
+const ECG={intBuf:new Float32Array(75),sum:0,ii:0,prev:0,thr:0,peak:0,last:-1e9,rr:[],events:[],
+  hist:new Float32Array(256),hi:0};
+function ecgStep(y){
+  const d=y-ECG.prev; ECG.prev=y;
+  const sq=d*d;
+  ECG.sum-=ECG.intBuf[ECG.ii];ECG.intBuf[ECG.ii]=sq;ECG.sum+=sq;ECG.ii=(ECG.ii+1)%75;
+  const m=ECG.sum/75;
+  ECG.peak=Math.max(ECG.peak*0.9995,m);
+  ECG.thr=ECG.peak*0.35;
+  ECG.hist[ECG.hi]=y; ECG.hi=(ECG.hi+1)%ECG.hist.length;
+  if(m>ECG.thr && sampleCount-ECG.last>0.2*FS){
+    // An interval that spans a filled radio gap may hide a beat that was in the
+    // lost packet; it would read as one long RR and drag heart rate and HRV
+    // down. Drop it rather than trust it.
+    const spansGap = LINKGAP.at>ECG.last;
+    if(ECG.last>0 && !spansGap){
+      const rr=(sampleCount-ECG.last)/FS*1000;
+      if(rr>270&&rr<2200){
+        ECG.rr.push(rr); if(ECG.rr.length>120) ECG.rr.shift();
+        ECG.events.unshift({t:sampleCount/FS,rr});
+        if(ECG.events.length>40) ECG.events.pop();
+        // The integrator lags the actual R peak, so search the recent history
+        // for the true extremum rather than sampling y at threshold crossing.
+        const L=ECG.hist.length, span=Math.round(0.12*FS);
+        let amp=0, lo=1e9, hi=-1e9;
+        for(let b=0;b<span;b++){
+          const v=ECG.hist[(ECG.hi-1-b+L*2)%L];
+          if(Math.abs(v)>Math.abs(amp)) amp=v;
+        }
+        // Baseline from the PQ segment just before the complex. Measuring R
+        // against zero lets slow electrode drift ride into the amplitude
+        // series, where it can easily beat the ~15% respiratory modulation.
+        for(let b=span;b<L;b++){
+          const v=ECG.hist[(ECG.hi-1-b+L*2)%L];
+          if(v<lo) lo=v; if(v>hi) hi=v;
+        }
+        const base=(lo+hi)/2;
+        edrBeat(sampleCount/FS, Math.abs(amp-base), rr);
+      }
+    }
+    ECG.last=sampleCount;
+  }
+}
+function ecgMetrics(){
+  const rr=ECG.rr;
+  if(rr.length<3) return null;
+  const mean=rr.reduce((a,b)=>a+b,0)/rr.length;
+  const sdnn=Math.sqrt(rr.reduce((a,b)=>a+(b-mean)*(b-mean),0)/rr.length);
+  let sq=0,nn50=0;
+  for(let i=1;i<rr.length;i++){const d=rr[i]-rr[i-1];sq+=d*d;if(Math.abs(d)>50)nn50++;}
+  const rmssd=Math.sqrt(sq/Math.max(1,rr.length-1));
+  return {bpm:60000/mean,mean,sdnn,rmssd,pnn50:100*nn50/Math.max(1,rr.length-1),
+          n:rr.length,irregular:sdnn/mean>0.15};
+}
+
+/* ======================= EOG ======================= */
+
+const EOG={base:20,inEv:false,evStart:0,peak:0,events:[],counts:{blink:0,left:0,right:0}};
+function eogStep(y){
+  const a=Math.abs(y);
+  const thr=Math.max(40,EOG.base*3.2);
+  EOG.base=EOG.base*0.9995+a*0.0005;
+  if(!EOG.inEv){
+    if(a>thr){EOG.inEv=true;EOG.evStart=sampleCount;EOG.peak=y;}
+  }else{
+    if(Math.abs(y)>Math.abs(EOG.peak)) EOG.peak=y;
+    if(a<thr*0.4 || sampleCount-EOG.evStart>FS*1.5){
+      const dur=(sampleCount-EOG.evStart)/FS*1000;
+      EOG.inEv=false;
+      if(dur>40){
+        let name;
+        if(dur<400){name="Blink";EOG.counts.blink++;}
+        else if(EOG.peak>0){name="Look left";EOG.counts.left++;}
+        else{name="Look right";EOG.counts.right++;}
+        EOG.events.unshift({t:sampleCount/FS,name,dur,amp:Math.abs(EOG.peak)});
+        if(EOG.events.length>40) EOG.events.pop();
+      }
+    }
+  }
+}
+
+/* ======================= EEG ======================= */
+
+const BANDS=[["Delta",0.5,4],["Theta",4,8],["Alpha",8,13],["Beta",13,30],["Gamma",30,45]];
+function eegBands(){
+  const c=CH[S.specCh]||CH[0]; if(!c) return null;
+  const binHz=FS/NFFT, out=[]; let tot=0;
+  for(const [n,lo,hi] of BANDS){
+    let p=0;
+    for(let i=1;i<NFFT/2;i++){const f=i*binHz;if(f>=lo&&f<hi)p+=c.magFilt[i]*c.magFilt[i];}
+    out.push({name:n,p});tot+=p;
+  }
+  for(const b of out) b.rel=tot>0?b.p/tot:0;
+  return {bands:out,tot};
+}
+
+/* ======================= fatigue ======================= */
+
+const FAT={
+  lo:20, hi:200, ch:0, gate:45,
+  running:false, calibrating:false, calAcc:0, calN:0,
+  epochs:[], activeSamples:0, mdf0:null, rms0:null,
+  lastMdf:0, lastMnf:0, lastRms:0, live:0
+};
+const _lin=new Float32Array(NFFT);
+
+/* Median and mean frequency of the power spectrum, with the mains harmonics
+   excluded so residual hum cannot drag the estimate around. */
+function spectralFreqs(mag,lo,hi){
+  const binHz=FS/NFFT;
+  const f=[],p=[];
+  let tot=0;
+  for(let i=1;i<NFFT/2;i++){
+    const fr=i*binHz;
+    if(fr<lo||fr>hi) continue;
+    let skip=false;
+    for(let h=1;h<=4;h++) if(Math.abs(fr-S.mains*h)<2.5){skip=true;break;}
+    if(skip) continue;
+    const pw=mag[i]*mag[i];
+    f.push(fr);p.push(pw);tot+=pw;
+  }
+  if(tot<=0||f.length<4) return null;
+  let mnf=0;
+  for(let i=0;i<f.length;i++) mnf+=f[i]*p[i];
+  mnf/=tot;
+  const half=tot/2;
+  let acc=0,mdf=f[f.length-1];
+  for(let i=0;i<f.length;i++){
+    if(acc+p[i]>=half){
+      // interpolate inside the bin, treating its power as uniformly spread
+      mdf=f[i]-binHz/2+binHz*((half-acc)/p[i]);
+      break;
+    }
+    acc+=p[i];
+  }
+  return {mdf,mnf,power:tot};
+}
+
+function fatigueEpoch(){
+  const c=CH[FAT.ch]; if(!c) return;
+  const head=c.fbI;                       // oldest sample in the circular buffer
+  let sq=0;
+  for(let i=0;i<NFFT;i++){
+    const v=c.fbBuf[(head+i)%NFFT];
+    _lin[i]=v; sq+=v*v;
+  }
+  const rms=Math.sqrt(sq/NFFT);
+  FAT.live=rms;
+
+  if(FAT.calibrating){
+    FAT.calAcc+=rms;FAT.calN++;
+    if(FAT.calN>=3){
+      FAT.gate=Math.max(8,(FAT.calAcc/FAT.calN)*5);
+      FAT.calibrating=false;
+      syncGateSlider();
+      setFatArmed("hot","Gate set to "+fmtUv(FAT.gate));
+    }
+    return;
+  }
+  if(!FAT.running) return;
+  if(rms<FAT.gate) return;                // below the gate: not contracting, clock does not advance
+
+  fftMag(_lin,c.magFb);
+  const s=spectralFreqs(c.magFb,FAT.lo,FAT.hi);
+  if(!s) return;
+
+  FAT.activeSamples+=NFFT/2;
+  const t=FAT.activeSamples/FS;
+  FAT.lastMdf=s.mdf;FAT.lastMnf=s.mnf;FAT.lastRms=rms;
+
+  if(FAT.mdf0===null && FAT.epochs.length>=3){
+    // baseline from the first few settled epochs, not the very first window
+    const seed=FAT.epochs.slice(0,4);
+    FAT.mdf0=seed.reduce((a,e)=>a+e.mdf,0)/seed.length;
+    FAT.rms0=seed.reduce((a,e)=>a+e.rms,0)/seed.length;
+  }
+  FAT.epochs.push({t,mdf:s.mdf,mnf:s.mnf,rms,s:s.mdf});
+  // centred 3-point smoothing: single-epoch MDF is noisy, and a centred window
+  // cleans it without the lag an EMA would add to the slope
+  const E=FAT.epochs,L=E.length;
+  if(L>=3) E[L-2].s=(E[L-3].mdf+E[L-2].mdf+E[L-1].mdf)/3;
+  if(L>600) E.shift();
+}
+
+function fatRegression(){
+  const e=FAT.epochs;
+  if(e.length<6||FAT.mdf0===null) return null;
+  let sx=0,sy=0,n=e.length;
+  for(const p of e){sx+=p.t;sy+=p.s;}
+  const mx=sx/n,my=sy/n;
+  let sxy=0,sxx=0,syy=0;
+  for(const p of e){const dx=p.t-mx,dy=p.s-my;sxy+=dx*dy;sxx+=dx*dx;syy+=dy*dy;}
+  if(sxx<=0) return null;
+  const slope=sxy/sxx;                       // Hz per second
+  const r2=(syy>0)?(sxy*sxy)/(sxx*syy):0;
+  const last=e[e.length-1];
+  const dMdf=(last.s/FAT.mdf0-1)*100;
+  const dRms=(last.rms/FAT.rms0-1)*100;
+  const perMin=slope*60/FAT.mdf0*100;        // % of baseline per minute
+  let quad,qLbl;
+  if(dRms>=0&&dMdf<0){quad=1;qLbl="Fatigue";}
+  else if(dRms>=0&&dMdf>=0){quad=2;qLbl="Force increase";}
+  else if(dRms<0&&dMdf>=0){quad=3;qLbl="Recovery";}
+  else{quad=4;qLbl="Force decrease";}
+  return {slope,slopeMin:slope*60,perMin,r2,dMdf,dRms,quad,qLbl,
+          n,t:last.t,mdf:last.mdf,mnf:last.mnf,rms:last.rms};
+}
+
+function fmtUv(counts){
+  const uv=counts*uvPerCount()*1000;
+  return uv>=1000?(uv/1000).toFixed(2)+" mV":uv.toFixed(0)+" µV";
+}
+function setFatArmed(cls,txt){
+  const el=document.getElementById("fatArmed");
+  el.className="armed"+(cls?" "+cls:"");
+  document.getElementById("fatArmedTxt").textContent=txt;
+}
+function resetFatigue(){
+  FAT.running=false;FAT.calibrating=false;FAT.epochs=[];FAT.activeSamples=0;
+  FAT.mdf0=null;FAT.rms0=null;FAT.lastMdf=0;FAT.lastRms=0;
+  demo.fat=0;
+  const b=document.getElementById("btnFatStart");
+  if(b) b.textContent="Start test";
+  setFatArmed("","Idle");
+  document.getElementById("fLbl").textContent="No test running";
+  document.getElementById("fBig").textContent="—";
+  document.getElementById("fSub").textContent="Start a test and hold the contraction";
+  statBlock("fatStats",[["Epochs","0"]]);
+}
+
+function paintFatigue(){
+  document.getElementById("gateLv").textContent=
+    "gate "+fmtUv(FAT.gate)+" · now "+fmtUv(FAT.live);
+  if(FAT.running){
+    const over=FAT.live>=FAT.gate;
+    setFatArmed(over?"rec":"hot",over?"Recording — "+(FAT.activeSamples/FS).toFixed(0)+" s active":"Waiting for contraction");
+  }
+  const r=fatRegression();
+  if(!r){
+    statBlock("fatStats",[["Epochs",FAT.epochs.length],["Baseline",FAT.mdf0?FAT.mdf0.toFixed(1):"—","Hz"]]);
+    if(FAT.running){
+      document.getElementById("fLbl").textContent="Collecting";
+      document.getElementById("fBig").textContent=FAT.lastMdf?FAT.lastMdf.toFixed(0)+" Hz":"—";
+      document.getElementById("fSub").textContent="need about six seconds of contraction before a trend appears";
+    }
+    return;
+  }
+  statBlock("fatStats",[
+    ["MDF now",r.mdf.toFixed(1),"Hz"],
+    ["Baseline",FAT.mdf0.toFixed(1),"Hz"],
+    ["Slope",r.slopeMin.toFixed(1),"Hz/min"],
+    ["Normalised",r.perMin.toFixed(1),"%/min"],
+    ["Amplitude",(r.dRms>=0?"+":"")+r.dRms.toFixed(0),"%"],
+    ["Fit r²",r.r2.toFixed(2),""],
+    ["Active",r.t.toFixed(0),"s"],
+    ["Epochs",r.n,""]
+  ]);
+  let lbl,big;
+  if(r.r2<0.2){lbl="Trend unclear";big="—";}
+  else if(r.perMin<-8){lbl="Fatiguing fast";big=r.perMin.toFixed(1)+"%/min";}
+  else if(r.perMin<-3){lbl="Fatiguing";big=r.perMin.toFixed(1)+"%/min";}
+  else if(r.perMin<=3){lbl="Holding steady";big=r.perMin.toFixed(1)+"%/min";}
+  else{lbl="Recovering";big="+"+r.perMin.toFixed(1)+"%/min";}
+  document.getElementById("fLbl").textContent=lbl;
+  document.getElementById("fBig").textContent=big;
+  document.getElementById("fSub").textContent=
+    r.qLbl.toLowerCase()+" · MDF "+(r.dMdf>=0?"+":"")+r.dMdf.toFixed(1)+
+    "%, amplitude "+(r.dRms>=0?"+":"")+r.dRms.toFixed(0)+"% from baseline";
+}
+
+/* ======================= focus sessions ======================= */
+
+const FC={
+  running:false, t0:0, deepGap:8, sim:1, confounded:false,
+  lastBlink:null, gap:0,
+  deepS:0, engagedS:0, idleS:0,
+  runStart:null, bestRun:0, runs:0, runPending:false,
+  timeline:[],                    // {t, state} sampled once a second
+  hist:[],                        // {t, gap} for the trend
+  state:"idle", lastTick:0
+};
+
+function fcReset(){
+  FC.running=false;FC.t0=0;FC.lastBlink=null;FC.gap=0;
+  FC.deepS=FC.engagedS=FC.idleS=0;
+  FC.runStart=null;FC.bestRun=0;FC.runs=0;FC.runPending=false;
+  FC.timeline=[];FC.hist=[];FC.state="idle";
+  const b=document.getElementById("btnFcStart");
+  if(b) b.textContent="Start session";
+  setFocus("Session not started","0:00","deep focus time · press start when you begin working",false);
+}
+
+function fcBlink(t){
+  if(FC.lastBlink!==null) FC.gap=t-FC.lastBlink;
+  FC.lastBlink=t;
+}
+
+/* Called once a second. The current gap is measured from the last blink to now,
+   not between the last two blinks — otherwise a long silence would not register
+   until it ended, which is exactly when it matters most. */
+function fcTick(){
+  if(!FC.running) return;
+  const t=sampleCount/FS;
+  if(t-FC.lastTick<1) return;
+  const dt=t-FC.lastTick;
+  FC.lastTick=t;
+
+  const since = FC.lastBlink===null ? 0 : t-FC.lastBlink;
+  const live  = Math.max(since,0);
+
+  /* Judge from the recent average gap, not the instantaneous one. A single
+     blink in the middle of concentrated work would otherwise reset the state
+     to idle and chop one real period of focus into dozens of fragments. The
+     current gap still counts, so a long silence registers while it happens. */
+  const look=Math.max(45,FC.deepGap*4);
+  const recent=DZ.blinks.filter(b=>t-b.t<=look);
+  let avgGap;
+  if(recent.length<2){
+    avgGap=look;                               // no blinks at all in the window
+  }else{
+    let sum=0;
+    for(let i=1;i<recent.length;i++) sum+=recent[i].t-recent[i-1].t;
+    avgGap=sum/(recent.length-1);
+  }
+  const eff=Math.max(avgGap,live);             // an ongoing silence counts now
+
+  let st;
+  if(eff>=FC.deepGap)      st="deep";
+  else if(eff>=3.0)        st="engaged";
+  else                     st="idle";
+
+  // hysteresis on leaving deep, so one stray blink does not end a streak
+  if(FC.state==="deep" && st!=="deep" && eff>=FC.deepGap*0.65) st="deep";
+
+  if(st==="deep")          FC.deepS+=dt;
+  else if(st==="engaged")  FC.engagedS+=dt;
+  else                     FC.idleS+=dt;
+
+  // streaks of continuous deep focus
+  if(st==="deep"){
+    if(FC.runStart===null){ FC.runStart=t; FC.runPending=true; }
+    const len=t-FC.runStart;
+    if(len>FC.bestRun) FC.bestRun=len;
+    if(FC.runPending && len>=30){ FC.runs++; FC.runPending=false; }
+  }else if(FC.runStart!==null){
+    FC.runStart=null;
+  }
+  // only count streaks worth naming; sub-30-second flickers are noise
+  
+
+  FC.state=st;
+  FC.timeline.push({t,state:st});
+  if(FC.timeline.length>3600) FC.timeline.shift();
+  FC.hist.push({t,gap:live});
+  if(FC.hist.length>3600) FC.hist.shift();
+
+  const el=t-FC.t0;
+  const deep=FC.deepS;
+  const pct = el>0? deep/el*100 : 0;
+
+  /* Tiredness increases blink rate, which reads here as lost focus. The two
+     effects genuinely overlap and cannot be fully separated from blink timing
+     alone, so rather than hide it, flag it: if the drowsiness card has a
+     baseline and is scoring high, the focus figure is not trustworthy. */
+  FC.confounded = (DZ.base && DZ.score>0.6);
+
+  let lbl;
+  if(FC.confounded) lbl="Tired, not idle";
+  else if(st==="deep") lbl="In deep focus";
+  else if(st==="engaged") lbl="Engaged";
+  else lbl="Blinking freely";
+
+  setFocus(lbl, fmtClock(deep),
+    FC.confounded
+      ? "drowsiness is raising your blink rate — this reading understates focus"
+      : fmtClock(el)+" elapsed · "+pct.toFixed(0)+"% deep · current gap "+live.toFixed(0)+" s",
+    st==="deep"&&!FC.confounded);
+}
+
+function fmtClock(sec){
+  const m=Math.floor(sec/60), s=Math.floor(sec%60);
+  if(m>=60){
+    const h=Math.floor(m/60);
+    return h+":"+String(m%60).padStart(2,"0")+":"+String(s).padStart(2,"0");
+  }
+  return m+":"+String(s).padStart(2,"0");
+}
+function setFocus(l,c,sub,deep){
+  document.getElementById("fLbl2").textContent=l;
+  document.getElementById("fClk").textContent=c;
+  document.getElementById("fSub2").textContent=sub||"";
+  document.getElementById("fcClock").classList.toggle("deep",!!deep);
+}
+
+/* ======================= drowsiness ======================= */
+
+const DZ={
+  thr:180, win:60, alarm:false, sim:0,
+  inBlink:false, bStart:0, bPeak:0, bLast:-1e9,
+  blinks:[],                       // {t, dur, amp}
+  base:null, baseArmed:false,
+  score:0, level:"—",
+  rate:0, meanDur:0, longFrac:0, burst:0, thetaAlpha:0,
+  hist:[], lastBeep:0
+};
+
+function dzReset(){
+  DZ.blinks=[];DZ.base=null;DZ.score=0;DZ.hist=[];
+  DZ.inBlink=false;DZ.rate=DZ.meanDur=DZ.longFrac=DZ.burst=0;
+  const b=document.getElementById("btnDzAlarm");
+  if(b){DZ.alarm=false;b.textContent="Alarm: off";}
+  setDrowse("No data","—","set a baseline while you are alert, then keep working",0,false);
+}
+
+/* Blink detection on the raw filtered forehead signal. A blink is a fast,
+   large, roughly symmetric excursion; the duration is measured between the
+   threshold crossings, because it is duration — not count — that lengthens
+   as someone tires. */
+function dzStep(y){
+  const t=sampleCount/FS;
+  const a=Math.abs(y);
+
+  if(!DZ.inBlink){
+    if(a>DZ.thr && t-DZ.bLast>0.15){       // 150 ms refractory
+      DZ.inBlink=true;DZ.bStart=t;DZ.bPeak=a;
+    }
+  }else{
+    if(a>DZ.bPeak) DZ.bPeak=a;
+    if(a<DZ.thr*0.35 || t-DZ.bStart>1.6){
+      const dur=(t-DZ.bStart)*1000;
+      DZ.inBlink=false;DZ.bLast=t;
+      // 60-600 ms is the plausible range for a blink; outside it is artefact
+      if(dur>=60&&dur<=900){
+        DZ.blinks.push({t,dur,amp:DZ.bPeak});
+        if(DZ.blinks.length>400) DZ.blinks.shift();
+        fcBlink(t);            // the focus card shares this detector
+      }
+    }
+  }
+  if(sampleCount%250===0){ dzUpdate(); fcTick(); }
+}
+
+function dzUpdate(){
+  const t=sampleCount/FS;
+  const w=DZ.win;
+  const recent=DZ.blinks.filter(b=>t-b.t<=w);
+  while(DZ.blinks.length && t-DZ.blinks[0].t>300) DZ.blinks.shift();
+
+  DZ.rate = recent.length*60/w;
+  DZ.meanDur = recent.length? recent.reduce((s,b)=>s+b.dur,0)/recent.length : 0;
+  // PERCLOS analogue: what share of blinks are long and slow
+  DZ.longFrac = recent.length? recent.filter(b=>b.dur>300).length/recent.length : 0;
+
+  // burstiness: blinks arriving in clusters rather than evenly spaced
+  let burst=0;
+  if(recent.length>=4){
+    const gaps=[];
+    for(let i=1;i<recent.length;i++) gaps.push(recent[i].t-recent[i-1].t);
+    const m=gaps.reduce((a,b)=>a+b,0)/gaps.length;
+    const sd=Math.sqrt(gaps.reduce((a,g)=>a+(g-m)*(g-m),0)/gaps.length);
+    burst = m>0? Math.min(2,sd/m) : 0;    // coefficient of variation
+  }
+  DZ.burst=burst;
+
+  // Theta/alpha from the running FFT. On a forehead electrode this is badly
+  // contaminated: every blink is a large low-frequency transient that lands
+  // squarely in the theta band, so the raw ratio swings by orders of magnitude
+  // and is useless as a level. Smooth it heavily and clamp it, and treat it as
+  // a weak tiebreaker rather than a measurement.
+  const bands=eegBands();
+  if(bands){
+    const th=bands.bands[1].rel, al=bands.bands[2].rel;
+    const raw = al>1e-3 ? Math.min(6, th/al) : 0;
+    DZ.thetaAlpha = DZ.thetaAlpha? DZ.thetaAlpha*0.92+raw*0.08 : raw;
+  }
+
+  if(DZ.baseArmed && recent.length>=6){
+    DZ.base={rate:DZ.rate, dur:DZ.meanDur, ta:DZ.thetaAlpha};
+    DZ.baseArmed=false;
+    setDrowse("Baseline set",DZ.meanDur.toFixed(0)+" ms",
+      "alert reference: "+DZ.rate.toFixed(0)+" blinks/min, mean duration "+
+      DZ.meanDur.toFixed(0)+" ms",0,false);
+    return;
+  }
+  if(!DZ.base || recent.length<3) return;
+
+  /* Weighted score. Duration dominates because it is the earliest and most
+     reliable sign; rate is included but discounted, since concentrating on a
+     screen suppresses blinking in an alert person too. */
+  const dDur = DZ.base.dur>0 ? Math.max(0,(DZ.meanDur/DZ.base.dur-1)) : 0;
+  const dTA  = DZ.base.ta>0  ? Math.max(0,(DZ.thetaAlpha/DZ.base.ta-1)) : 0;
+  const dRate= DZ.base.rate>0? Math.max(0,(DZ.rate/DZ.base.rate-1)) : 0;
+
+  let sc = 0;
+  sc += Math.min(1,dDur/0.8)   * 0.50;   // duration up 80% = full marks
+  sc += Math.min(1,DZ.longFrac/0.35)*0.25;
+  sc += Math.min(1,burst/1.1)  * 0.15;
+  sc += Math.min(1,dRate/1.2)  * 0.06;
+  sc += Math.min(1,dTA/1.5)    * 0.04;   // deliberately small: see above
+  DZ.score = DZ.score*0.7 + Math.min(1,sc)*0.3;
+
+  DZ.hist.push({t,s:DZ.score,dur:DZ.meanDur,rate:DZ.rate});
+  if(DZ.hist.length>600) DZ.hist.shift();
+
+  let lvl;
+  if(DZ.score<0.40) lvl="Alert";
+  else if(DZ.score<0.70) lvl="Getting tired";
+  else lvl="Drowsy";
+  DZ.level=lvl;
+
+  const alertNow = DZ.score>=0.70;
+  setDrowse(lvl, (DZ.score*100).toFixed(0),
+    "blinks "+DZ.rate.toFixed(0)+"/min · mean "+DZ.meanDur.toFixed(0)+
+    " ms vs "+DZ.base.dur.toFixed(0)+" baseline · "+(DZ.longFrac*100).toFixed(0)+"% long",
+    DZ.score, alertNow);
+
+  if(alertNow && DZ.alarm && performance.now()-DZ.lastBeep>8000){
+    DZ.lastBeep=performance.now();
+    dzBeep();
+  }
+}
+
+function dzBeep(){
+  try{
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(!Ctx) return;
+    DZ.actx = DZ.actx || new Ctx();
+    const o=DZ.actx.createOscillator(), g=DZ.actx.createGain();
+    o.frequency.value=880; o.type="sine";
+    g.gain.setValueAtTime(0.0001,DZ.actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.25,DZ.actx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,DZ.actx.currentTime+0.55);
+    o.connect(g);g.connect(DZ.actx.destination);
+    o.start();o.stop(DZ.actx.currentTime+0.6);
+  }catch(e){}
+}
+
+function setDrowse(l,b,sub,score,alert){
+  document.getElementById("dLbl").textContent=l;
+  document.getElementById("dBig").textContent=b;
+  document.getElementById("dSub").textContent=sub||"";
+  document.getElementById("dTrack").style.width=((score||0)*100).toFixed(0)+"%";
+  document.getElementById("dTrack").style.background=
+    alert?"var(--warn)":(score>0.4?"var(--grid-bold)":"var(--cal)");
+  document.getElementById("dzGauge").classList.toggle("alert",!!alert);
+}
+
+/* ======================= gaze control ======================= */
+
+const GZ={
+  cal:false, calPhase:-1, calT0:0, calAcc:[], calBuf:[],
+  running:false, sens:60, dwell:1.2, axes:2,
+  h:0, v:0, vAtBlink:0,           // leaky-integrated eye position estimate
+  hRaw:0, vRaw:0,
+  dir:"centre", dirT:0, hold:0, picked:-1, pickT:0, cand:null, candN:0,
+  swingH:0, swingV:0,
+  blink:false, blinkT:0, blinkCount:0, sacCount:0,
+  gainH:1, gainV:1, kVH:0, kHV:0, crossVH:0, crossHV:0, vBias:1.35, ready:false,
+  items:[{n:"Yes",k:"look left"},{n:"No",k:"look right"},
+         {n:"Back",k:"look up"},{n:"Menu",k:"look down"}],
+  steps:null,
+  trail:[]
+};
+
+const CAL_STEPS=[
+  {d:"centre",t:"Look straight ahead"},
+  {d:"left",  t:"Look left, hold"},
+  {d:"centre",t:"Back to centre"},
+  {d:"right", t:"Look right, hold"},
+  {d:"centre",t:"Back to centre"},
+  {d:"up",    t:"Look up, hold"},
+  {d:"down",  t:"Look down, hold"},
+  {d:"blink", t:"Blink a few times"}
+];
+
+function gzReset(){
+  GZ.cal=false;GZ.calPhase=-1;GZ.running=false;GZ.ready=false;
+  GZ.h=GZ.v=GZ.hRaw=GZ.vRaw=0;GZ.dir="centre";GZ.hold=0;GZ.picked=-1;
+  GZ.gainH=GZ.gainV=1;GZ.blinkCount=0;GZ.sacCount=0;GZ.trail=[];
+  GZ.cand=null;GZ.candN=0;GZ.swingH=0;GZ.swingV=0;GZ.kVH=0;GZ.kHV=0;
+  const r=document.getElementById("btnGzRun");
+  if(r){r.disabled=true;r.textContent="Start menu";}
+  const c=document.getElementById("calStep");
+  if(c) c.classList.remove("on");
+  setGaze("Not calibrated","—","Run the calibration first — it takes about 25 seconds");
+  renderMenu();
+}
+
+/* Eye position is nearly DC and the amplifier's high-pass steadily pulls the
+   trace back to zero, so an absolute level cannot represent gaze for long.
+   Instead we integrate the signal with a slow leak: a saccade produces a step
+   that accumulates, and the leak returns the estimate to centre over a few
+   seconds — matching what the eye and the amplifier actually do together. */
+function gazeStep(){
+  const chans=CH.filter(c=>c.on);
+  if(!chans.length) return;
+  const hCh=chans[0], vCh=chans.length>1?chans[1]:null;
+
+  GZ.hRaw=hCh.last;
+  GZ.vRaw=vCh?vCh.last:0;
+
+  // The leak has to outlast the dwell time, or the estimate drifts back to
+  // centre before a selection can complete. 8 s at 500 Hz leaves comfortable
+  // headroom above the longest dwell setting while still recentring on its own.
+  const leak=0.99975;                      // ~8 s time constant
+  GZ.h=GZ.h*leak+GZ.hRaw*0.0022;
+  GZ.v=GZ.v*leak+GZ.vRaw*0.0022;
+
+  // Blinks are fast, large and vertical-only. Suppress the vertical axis
+  // briefly so a blink cannot be read as a look upward.
+  if(vCh && Math.abs(GZ.vRaw)>GZ.sens*4 && Math.abs(GZ.hRaw)<GZ.sens*2){
+    if(!GZ.blink){GZ.blink=true;GZ.blinkCount++;GZ.vAtBlink=GZ.v;}
+    GZ.blinkT=sampleCount;
+    // Hold the vertical estimate at its pre-blink value. Letting the blink
+    // spike accumulate would leave a false upward offset that outlives the
+    // blink itself by the whole leak time constant.
+    GZ.v=GZ.vAtBlink;
+  }
+  if(GZ.blink && sampleCount-GZ.blinkT>0.35*FS){ GZ.blink=false; GZ.v=GZ.vAtBlink; }
+
+  if(GZ.calPhase>=0){ gazeCalTick(); return; }
+  if(!GZ.running) return;
+
+  // Unmix before normalising: subtract each axis's leakage into the other.
+  const hr=GZ.h, vr=GZ.v;
+  const det=1-GZ.kVH*GZ.kHV;
+  const hu=Math.abs(det)>1e-3?(hr-GZ.kHV*vr)/det:hr;
+  const vu=Math.abs(det)>1e-3?(vr-GZ.kVH*hr)/det:vr;
+  const H=hu*GZ.gainH, V=vu*GZ.gainV;
+  // Hysteresis: it takes the full threshold to enter a direction but only 60%
+  // to stay there. Without this the estimate dithers across the boundary and
+  // resets the dwell timer before it can ever complete.
+  const inTh=GZ.sens, outTh=GZ.sens*0.6;
+  const th = GZ.dir==="centre" ? inTh : outTh;
+
+  let d="centre";
+  if(!GZ.blink){
+    const Vb=V/(GZ.vBias||1);
+    if(Math.abs(H)>=Math.abs(Vb)&&Math.abs(H)>th)  d=H>0?"left":"right";
+    else if(GZ.axes>1&&Math.abs(V)>th*(GZ.vBias||1)) d=V>0?"up":"down";
+  }
+  if(d!==GZ.dir){
+    // debounce: a new direction has to persist before it is accepted
+    if(d===GZ.cand) GZ.candN++; else {GZ.cand=d;GZ.candN=1;}
+    if(GZ.candN>=Math.round(0.08*FS)){
+      if(d!=="centre") GZ.sacCount++;
+      GZ.dir=d;GZ.hold=0;GZ.cand=null;GZ.candN=0;
+    }
+  }else{
+    GZ.cand=null;GZ.candN=0;
+    if(d!=="centre") GZ.hold+=1/FS;
+  }
+
+  const idx=["left","right","up","down"].indexOf(GZ.dir);
+  if(idx>=0 && idx<GZ.items.length && GZ.hold>=GZ.dwell && GZ.picked!==idx){
+    GZ.picked=idx;GZ.pickT=performance.now();GZ.hold=0;
+  }
+
+  if(sampleCount%10===0){
+    GZ.trail.push([H,V]);
+    if(GZ.trail.length>90) GZ.trail.shift();
+  }
+}
+
+function gazeStartCal(){
+  // With one channel there is no vertical axis, so asking the person to look
+  // up and down wastes ten seconds and records nothing usable.
+  GZ.steps = GZ.axes>1 ? CAL_STEPS : CAL_STEPS.filter(s=>
+    s.d!=="up"&&s.d!=="down"&&s.d!=="blink");
+  GZ.calPhase=0;GZ.calT0=performance.now();GZ.calAcc=[];GZ.calBuf=[];
+  GZ.h=GZ.v=0;GZ.ready=false;GZ.running=false;
+  document.getElementById("calStep").classList.add("on");
+  document.getElementById("btnGzRun").disabled=true;
+}
+
+function gazeCalTick(){
+  const step=GZ.steps[GZ.calPhase];
+  const el=performance.now()-GZ.calT0;
+  const dur=step.d==="centre"?2200:3200;
+  // ignore the first second: that is the saccade and the settling, not the hold
+  if(el>1000) GZ.calBuf.push([GZ.h,GZ.v]);
+  if(el<dur) return;
+
+  let mh=0,mv=0;
+  for(const p of GZ.calBuf){mh+=p[0];mv+=p[1];}
+  const n=Math.max(1,GZ.calBuf.length);
+  GZ.calAcc.push({d:step.d,h:mh/n,v:mv/n});
+  GZ.calBuf=[];
+  GZ.calPhase++;
+  GZ.calT0=performance.now();
+
+  if(GZ.calPhase>=GZ.steps.length){
+    gazeFinishCal();
+    return;
+  }
+}
+
+function gazeFinishCal(){
+  GZ.calPhase=-1;
+  document.getElementById("calStep").classList.remove("on");
+
+  const pick=d=>GZ.calAcc.filter(a=>a.d===d);
+  const avg=(arr,k)=>arr.length?arr.reduce((s,a)=>s+a[k],0)/arr.length:0;
+  const c=pick("centre");
+  const ch=avg(c,"h"), cv=avg(c,"v");
+  const L=avg(pick("left"),"h")-ch,  R=avg(pick("right"),"h")-ch;
+  const U=avg(pick("up"),"v")-cv,    D=avg(pick("down"),"v")-cv;
+
+  // Half the peak-to-peak excursion. Using (L - R)/2 rather than the mean of
+  // magnitudes keeps the sign: it is positive when looking left raises the
+  // signal, negative when the electrodes are wired the other way round.
+  const signedH=(L-R)/2, signedV=(U-D)/2;
+  const swingH=Math.abs(signedH), swingV=Math.abs(signedV);
+
+  // Normalise so a full excursion lands at 1.6x the threshold on both axes,
+  // and carry the sign through so positive always means left / up.
+  GZ.gainH = swingH>1 ? GZ.sens*1.6/signedH : 1;
+  GZ.gainV = swingV>1 ? GZ.sens*1.6/signedV : 1;
+
+  // Cross-talk: a purely horizontal saccade almost always shows up on the
+  // vertical channel too, because the electrodes cannot be placed on perfectly
+  // orthogonal axes on a real face. Measure how much vertical signal the
+  // left/right calibration produced and subtract that share, and vice versa.
+  const vDuringH=((avg(pick("left"),"v")-cv)+(avg(pick("right"),"v")-cv))/2;
+  const hDuringV=((avg(pick("up"),"h")-ch)+(avg(pick("down"),"h")-ch))/2;
+  const lrV=(avg(pick("left"),"v")-avg(pick("right"),"v"))/2;
+  const udH=(avg(pick("up"),"h")-avg(pick("down"),"h"))/2;
+  // Only trust a cross-talk estimate that is both modest and well supported.
+  // A coefficient near 1 means the calibration could not separate the axes at
+  // all, and unmixing on that number amplifies noise instead of removing it.
+  const rawVH = Math.abs(signedH)>1 ? lrV/signedH : 0;
+  const rawHV = Math.abs(signedV)>1 ? udH/signedV : 0;
+  GZ.kVH = Math.abs(rawVH)<0.5 ? rawVH : 0;
+  GZ.kHV = Math.abs(rawHV)<0.5 ? rawHV : 0;
+  if(GZ.axes<2){ GZ.kVH=0; GZ.kHV=0; }
+
+  // Horizontal is the stronger and more reliable axis on a real face, so break
+  // ties toward it: vertical has to clear a higher bar to win a comparison.
+  GZ.vBias = 1.35;
+
+  GZ.swingH=swingH; GZ.swingV=swingV;
+  GZ.crossVH=GZ.kVH; GZ.crossHV=GZ.kHV;
+  GZ.ready = swingH>2;
+  const btn=document.getElementById("btnGzRun");
+  btn.disabled=!GZ.ready;
+
+  if(!GZ.ready){
+    setGaze("Calibration failed","—",
+      "horizontal swing was only "+swingH.toFixed(1)+
+      " counts — check the electrodes at the outer corners of both eyes");
+  }else{
+    setGaze("Calibrated","Ready",
+      "horizontal swing "+swingH.toFixed(0)+", vertical "+swingV.toFixed(0)+
+      " counts · press start menu");
+  }
+}
+
+function setGaze(l,b,sub){
+  document.getElementById("gLbl").textContent=l;
+  document.getElementById("gBig").textContent=b;
+  document.getElementById("gSub").textContent=sub||"";
+}
+
+/* ======================= EDR ======================= */
+
+const EDR_FS=4;                     // resampling rate for the derived series
+const EDR_N=256;                    // 64 s window at 4 Hz
+const EDR={
+  beats:[],                         // {t, amp, rr}
+  am:new Float32Array(EDR_N), rsa:new Float32Array(EDR_N),
+  magAm:new Float32Array(EDR_N/2), magRsa:new Float32Array(EDR_N/2),
+  fAm:0, fRsa:0, pAm:0, pRsa:0,
+  rate:0, agree:0, method:"rsa", conf:0,
+  phase:0, depth:0, rsaMs:0, amSwing:0, sim:12, ready:false
+};
+
+function edrReset(){
+  EDR.beats=[];EDR.am.fill(0);EDR.rsa.fill(0);
+  EDR.fAm=EDR.fRsa=EDR.rate=EDR.agree=EDR.conf=0;
+  EDR.rsaMs=0;EDR.ready=false;EDR.phase=0;EDR.depth=0;
+}
+
+function edrBeat(t,amp,rr){
+  EDR.beats.push({t,amp,rr});
+  while(EDR.beats.length && t-EDR.beats[0].t > EDR_N/EDR_FS) EDR.beats.shift();
+  if(EDR.beats.length>400) EDR.beats.shift();
+}
+
+/* R peaks arrive at irregular intervals, so both derived series have to be put
+   on an even grid before any spectral method can touch them. Linear
+   interpolation is the standard choice here — the breathing band is far below
+   the beat rate, so nothing of interest lives where a fancier interpolator
+   would differ. */
+function resampleSeries(beats,pick,out){
+  const n=out.length;
+  if(beats.length<4) return false;
+  const t1=beats[beats.length-1].t, t0=t1-n/EDR_FS;
+  let j=0;
+  for(let i=0;i<n;i++){
+    const t=t0+i/EDR_FS;
+    while(j<beats.length-2 && beats[j+1].t<t) j++;
+    const a=beats[j], b=beats[j+1]||a;
+    const dt=b.t-a.t;
+    out[i]= dt>1e-6 ? pick(a)+(pick(b)-pick(a))*Math.min(1,Math.max(0,(t-a.t)/dt)) : pick(a);
+  }
+  // remove mean and a linear trend: electrode drift and a slowly wandering
+  // heart rate both show up as ramps that would otherwise dominate the low bins
+  let sx=0,sy=0,sxy=0,sxx=0;
+  for(let i=0;i<n;i++){sx+=i;sy+=out[i];sxy+=i*out[i];sxx+=i*i;}
+  const den=n*sxx-sx*sx;
+  const sl=den!==0?(n*sxy-sx*sy)/den:0, ic=(sy-sl*sx)/n;
+  for(let i=0;i<n;i++) out[i]-=sl*i+ic;
+  return true;
+}
+
+const _er=new Float32Array(EDR_N),_ei=new Float32Array(EDR_N);
+const edrHann=new Float32Array(EDR_N);
+for(let i=0;i<EDR_N;i++) edrHann[i]=0.5*(1-Math.cos(2*Math.PI*i/(EDR_N-1)));
+
+function edrFft(src,out){
+  for(let i=0;i<EDR_N;i++){_er[i]=src[i]*edrHann[i];_ei[i]=0;}
+  for(let i=1,j=0;i<EDR_N;i++){
+    let bit=EDR_N>>1;
+    for(;j&bit;bit>>=1) j^=bit;
+    j^=bit;
+    if(i<j){const t=_er[i];_er[i]=_er[j];_er[j]=t;}
+  }
+  for(let len=2;len<=EDR_N;len<<=1){
+    const half=len>>1;
+    for(let i=0;i<EDR_N;i+=len){
+      for(let k=0;k<half;k++){
+        const w=-2*Math.PI*k/len, wr=Math.cos(w), wi=Math.sin(w);
+        const xr=_er[i+k+half]*wr-_ei[i+k+half]*wi;
+        const xi=_er[i+k+half]*wi+_ei[i+k+half]*wr;
+        _er[i+k+half]=_er[i+k]-xr;_ei[i+k+half]=_ei[i+k]-xi;
+        _er[i+k]+=xr;_ei[i+k]+=xi;
+      }
+    }
+  }
+  for(let i=0;i<EDR_N/2;i++) out[i]=Math.sqrt(_er[i]*_er[i]+_ei[i]*_ei[i])/EDR_N;
+}
+
+/* Peak within the plausible respiratory band, 0.1-0.6 Hz = 6-36 breaths/min.
+   Parabolic interpolation across the three bins around the peak recovers
+   sub-bin resolution: raw bin spacing here is 0.94 /min, which would visibly
+   quantise the readout. */
+function bandPeak(mag){
+  const binHz=EDR_FS/EDR_N;
+  const lo=Math.max(1,Math.ceil(0.10/binHz)), hi=Math.floor(0.60/binHz);
+  let bi=lo,best=0,tot=0;
+  for(let i=lo;i<=hi;i++){ tot+=mag[i]*mag[i]; if(mag[i]>best){best=mag[i];bi=i;} }
+  if(best<=0) return {f:0,power:0,snr:0};
+  const a=mag[bi-1]||0,b=mag[bi],c=mag[bi+1]||0;
+  const den=a-2*b+c;
+  const d=den!==0?0.5*(a-c)/den:0;
+  const f=(bi+Math.max(-0.5,Math.min(0.5,d)))*binHz;
+  const snr=tot>0?(best*best)/tot:0;
+  return {f,power:best,snr};
+}
+
+function edrUpdate(){
+  if(!resampleSeries(EDR.beats,b=>b.amp,EDR.am)) return;
+  resampleSeries(EDR.beats,b=>60000/b.rr,EDR.rsa);
+  edrFft(EDR.am,EDR.magAm);
+  edrFft(EDR.rsa,EDR.magRsa);
+
+  const A=bandPeak(EDR.magAm), R=bandPeak(EDR.magRsa);
+  EDR.fAm=A.f; EDR.fRsa=R.f; EDR.pAm=A.snr; EDR.pRsa=R.snr;
+
+  // peak-to-trough of the interpolated instantaneous rate, in ms of RR
+  let mn=1e9,mx=-1e9;
+  for(let i=0;i<EDR_N;i++){ if(EDR.rsa[i]<mn)mn=EDR.rsa[i]; if(EDR.rsa[i]>mx)mx=EDR.rsa[i]; }
+  EDR.rsaMs=(mx-mn);
+
+  const dis=Math.abs(A.f-R.f);
+  EDR.agree=A.f>0&&R.f>0 ? Math.max(0,1-dis/0.08) : 0;
+
+  if(EDR.method==="am")       EDR.rate=A.f*60, EDR.conf=A.snr;
+  else if(EDR.method==="rsa") EDR.rate=R.f*60, EDR.conf=R.snr;
+  else{
+    // RSA is driven by vagal control of the sinus node and is immune to
+    // electrode drift, which is exactly what corrupts the amplitude series.
+    // So weight RSA higher unless AM independently agrees with it.
+    const wa=A.snr*(0.35+0.65*EDR.agree), wr=R.snr;
+    const tot=wa+wr;
+    EDR.rate = tot>0 ? (A.f*wa+R.f*wr)/tot*60 : 0;
+    EDR.conf = tot>0 ? Math.max(A.snr,R.snr)*(0.55+0.45*EDR.agree) : 0;
+  }
+  // bandPeak always returns its largest bin, so without an absolute floor a
+  // flat series still yields a confident-looking number. Require the actual
+  // modulation to be big enough to be a breath: RSA below ~1 bpm of swing, or
+  // AM below ~2% of mean R height, is noise.
+  let meanAmp=0;
+  for(const b of EDR.beats) meanAmp+=b.amp;
+  meanAmp/=Math.max(1,EDR.beats.length);
+  let amSwing=0,lo=1e9,hi=-1e9;
+  for(let i=0;i<EDR_N;i++){if(EDR.am[i]<lo)lo=EDR.am[i];if(EDR.am[i]>hi)hi=EDR.am[i];}
+  amSwing=meanAmp>1e-6?(hi-lo)/meanAmp:0;
+  EDR.amSwing=amSwing;
+  const modOk = EDR.method==="am" ? amSwing>0.02
+              : EDR.method==="rsa" ? EDR.rsaMs>1.0
+              : (amSwing>0.02||EDR.rsaMs>1.0);
+  EDR.ready = EDR.beats.length>=20 && EDR.rate>0 && modOk;
+  if(!modOk) EDR.conf=0;
+
+  // instantaneous phase and depth from the tail of the chosen series
+  const src = EDR.method==="rsa"?EDR.rsa:EDR.am;
+  let smn=1e9,smx=-1e9;
+  for(let i=EDR_N-Math.round(EDR_FS*12);i<EDR_N;i++){
+    if(src[i]<smn)smn=src[i]; if(src[i]>smx)smx=src[i];
+  }
+  const span=smx-smn;
+  EDR.depth=span;
+  EDR.phase= span>1e-6 ? (src[EDR_N-1]-smn)/span : 0;
+}
+
+/* ======================= small matrix helpers ======================= */
+/* Everything here is at most 4x4 or 6x6, so plain arrays and textbook
+   algorithms are faster than anything clever would be. */
+
+function matMul(A,B,n,m,q){          // (n x m) * (m x q)
+  const C=new Float64Array(n*q);
+  for(let i=0;i<n;i++)for(let k=0;k<m;k++){
+    const a=A[i*m+k]; if(a===0) continue;
+    for(let j=0;j<q;j++) C[i*q+j]+=a*B[k*q+j];
+  }
+  return C;
+}
+function matInv(A,n,ridge){          // Gauss-Jordan with a ridge for stability
+  const M=new Float64Array(n*2*n);
+  for(let i=0;i<n;i++){
+    for(let j=0;j<n;j++) M[i*2*n+j]=A[i*n+j]+(i===j?ridge:0);
+    M[i*2*n+n+i]=1;
+  }
+  for(let col=0;col<n;col++){
+    let piv=col,best=Math.abs(M[col*2*n+col]);
+    for(let r=col+1;r<n;r++){const v=Math.abs(M[r*2*n+col]);if(v>best){best=v;piv=r;}}
+    if(best<1e-12) return null;
+    if(piv!==col) for(let j=0;j<2*n;j++){const t=M[col*2*n+j];M[col*2*n+j]=M[piv*2*n+j];M[piv*2*n+j]=t;}
+    const d=M[col*2*n+col];
+    for(let j=0;j<2*n;j++) M[col*2*n+j]/=d;
+    for(let r=0;r<n;r++){
+      if(r===col) continue;
+      const f=M[r*2*n+col]; if(f===0) continue;
+      for(let j=0;j<2*n;j++) M[r*2*n+j]-=f*M[col*2*n+j];
+    }
+  }
+  const out=new Float64Array(n*n);
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++) out[i*n+j]=M[i*2*n+n+j];
+  return out;
+}
+function largestEig(M,n){            // power iteration; M is small and non-symmetric
+  let v=new Float64Array(n); v.fill(1/Math.sqrt(n));
+  let lam=0;
+  for(let it=0;it<60;it++){
+    const w=new Float64Array(n);
+    for(let i=0;i<n;i++){let a=0;for(let j=0;j<n;j++)a+=M[i*n+j]*v[j];w[i]=a;}
+    let nrm=0; for(let i=0;i<n;i++) nrm+=w[i]*w[i];
+    nrm=Math.sqrt(nrm);
+    if(nrm<1e-15) return 0;
+    for(let i=0;i<n;i++) w[i]/=nrm;
+    let nl=0; for(let i=0;i<n;i++){let a=0;for(let j=0;j<n;j++)a+=M[i*n+j]*w[j];nl+=w[i]*a;}
+    v=w;
+    if(Math.abs(nl-lam)<1e-10) return Math.max(0,nl);
+    lam=nl;
+  }
+  return Math.max(0,lam);
+}
+
+/* ======================= SSVEP ======================= */
+
+const SVN=2048;                       // ring buffer: 4.096 s at 500 Hz
+const SSV={
+  freqs:[12,14,16,18], harm:2, win:3.0,
+  running:false, acked:false, contrast:0.7,
+  frame:0, refresh:60, rhos:[], best:-1, bestRho:0, thresh:0,
+  simGaze:-1, decisions:0,
+  test:false, testSeq:[], testIdx:0, testT0:0, testHits:0, testDone:0, cue:-1, testSecs:4
+};
+
+/* Canonical correlation between the channel block X and the harmonic
+   reference set Y for one stimulus frequency. This is the standard SSVEP
+   decoder: it asks how much of the recorded signal lives in the subspace
+   spanned by sin/cos at f and its harmonics, and unlike a bare spectral peak
+   it combines channels optimally instead of averaging them. */
+function ccaRho(freq,nWin){
+  const chans=CH.filter(c=>c.on);
+  const p=chans.length;
+  if(!p) return 0;
+  const q=2*SSV.harm;
+  const n=Math.min(nWin,SVN);
+
+  // pull the newest n samples out of each ring, mean-removed
+  const X=new Float64Array(n*p);
+  for(let c=0;c<p;c++){
+    const ch=chans[c], start=(ch.svI-n+SVN*2)%SVN;
+    let mean=0;
+    for(let i=0;i<n;i++) mean+=ch.svBuf[(start+i)%SVN];
+    mean/=n;
+    for(let i=0;i<n;i++) X[i*p+c]=ch.svBuf[(start+i)%SVN]-mean;
+  }
+
+  // reference sinusoids built by phasor recurrence rather than n*q trig calls
+  const Y=new Float64Array(n*q);
+  for(let h=1;h<=SSV.harm;h++){
+    const w=2*Math.PI*freq*h/FS;
+    const cw=Math.cos(w), sw=Math.sin(w);
+    let cr=1, ci=0;
+    for(let i=0;i<n;i++){
+      Y[i*q+(h-1)*2]=ci;             // sin
+      Y[i*q+(h-1)*2+1]=cr;           // cos
+      const nr=cr*cw-ci*sw, ni=cr*sw+ci*cw;
+      cr=nr; ci=ni;
+    }
+  }
+
+  const Cxx=new Float64Array(p*p), Cyy=new Float64Array(q*q), Cxy=new Float64Array(p*q);
+  for(let i=0;i<n;i++){
+    for(let a=0;a<p;a++){
+      const xa=X[i*p+a];
+      for(let b=a;b<p;b++) Cxx[a*p+b]+=xa*X[i*p+b];
+      for(let b=0;b<q;b++) Cxy[a*q+b]+=xa*Y[i*q+b];
+    }
+    for(let a=0;a<q;a++){
+      const ya=Y[i*q+a];
+      for(let b=a;b<q;b++) Cyy[a*q+b]+=ya*Y[i*q+b];
+    }
+  }
+  for(let a=0;a<p;a++)for(let b=0;b<a;b++) Cxx[a*p+b]=Cxx[b*p+a];
+  for(let a=0;a<q;a++)for(let b=0;b<a;b++) Cyy[a*q+b]=Cyy[b*q+a];
+  for(let i=0;i<p*p;i++) Cxx[i]/=n;
+  for(let i=0;i<q*q;i++) Cyy[i]/=n;
+  for(let i=0;i<p*q;i++) Cxy[i]/=n;
+
+  let tr=0; for(let a=0;a<p;a++) tr+=Cxx[a*p+a];
+  const ridgeX=1e-8+1e-6*tr/p;
+  const iXX=matInv(Cxx,p,ridgeX);
+  const iYY=matInv(Cyy,q,1e-9);
+  if(!iXX||!iYY) return 0;
+
+  const Cyx=new Float64Array(q*p);
+  for(let a=0;a<p;a++)for(let b=0;b<q;b++) Cyx[b*p+a]=Cxy[a*q+b];
+
+  // M = Cxx^-1 Cxy Cyy^-1 Cyx, whose largest eigenvalue is rho^2
+  const M=matMul(matMul(matMul(iXX,Cxy,p,p,q),iYY,p,q,q),Cyx,p,q,p);
+  return Math.sqrt(Math.min(1,largestEig(M,p)));
+}
+
+/* Rough significance floor. With p channels and q references over n samples the
+   null distribution of rho grows as the reference set grows and shrinks with
+   window length, so the bar has to move with the settings rather than sit at a
+   fixed number the user would have to reinterpret each time. */
+function ssvepThreshold(nWin){
+  const p=Math.max(1,CH.filter(c=>c.on).length);
+  const q=2*SSV.harm;
+  return Math.min(0.85, Math.sqrt((p*q)/(nWin*0.55)) + 0.09);
+}
+
+function ssvepDecide(){
+  const nWin=Math.round(SSV.win*FS);
+  if(sampleCount<nWin) return;
+  SSV.thresh=ssvepThreshold(nWin);
+  const r=SSV.freqs.map(f=>ccaRho(f,nWin));
+  SSV.rhos=r;
+  let bi=0;
+  for(let i=1;i<r.length;i++) if(r[i]>r[bi]) bi=i;
+  SSV.best=r[bi]>=SSV.thresh?bi:-1;
+  SSV.bestRho=r[bi];
+  SSV.decisions++;
+}
+
+/* Wolpaw information transfer rate — the standard way to compare BCIs,
+   because raw accuracy ignores how long each selection took. */
+function itr(acc,nClass,secs){
+  if(acc<=0||nClass<2) return 0;
+  const P=Math.min(0.9999,Math.max(1e-6,acc));
+  let b=Math.log2(nClass)+P*Math.log2(P);
+  if(P<1) b+=(1-P)*Math.log2((1-P)/(nClass-1));
+  return Math.max(0,b*60/secs);
+}
+
+/* ======================= demo ======================= */
+
+const demo={t:0,ph:0,blink:0,eogT:0,pink:0,gest:0,gestT:0,fat:0,lp:[0,0,0,0],
+  eogH:0,eogV:0,eogHT:0,eogVT:0,gazeCmd:null,
+  blinkN:0,blinkLen:1,blinkAmp:420,blinkWait:1};
+const EMG_SIG=[[0.05,0.05,0.05,0.05],[1.0,0.35,0.75,0.2],[0.3,0.95,0.25,0.85]];
+const EMG_ZC =[[1,1,1,1],[1.0,1.4,0.9,1.2],[1.6,0.8,1.5,0.9]];
+function demoFrame(){
+  const t=demo.t/FS; demo.t++;
+  if(--demo.gestT<0){demo.gest=(demo.gest+1)%3;demo.gestT=FS*(2.5+Math.random()*1.5);}
+  if(S.mode==="ecg"){
+    // sinus arrhythmia: rate rises on inhalation, falls on exhalation
+    const rsa=1+0.09*Math.sin(2*Math.PI*(EDR.sim/60)*t+0.4);
+    demo.ph+=1/FS*(72/60)*(EDR.sim>0?rsa:1);
+    if(demo.ph>=1) demo.ph-=1;
+  }
+  if(S.mode==="eeg"){
+    const st=DZ.sim;
+    // Two independent drivers: tiredness sets how LONG each blink is, activity
+    // sets how OFTEN they come. Deep focus suppresses blinking without making
+    // the blinks themselves slow, which is what separates the two cards.
+    const actGap=[3.0,7.0,16.0][FC.sim];
+    const meanGap=[actGap*0.75,actGap*0.6,actGap*0.45][st];
+    const durMs  =[130,240,420][st];
+    if(demo.blinkN<=0){
+      demo.blinkWait-=1/FS;
+      if(demo.blinkWait<=0){
+        demo.blinkLen=Math.max(1,Math.round(FS*(durMs+(Math.random()-0.5)*90)/1000));
+        demo.blinkN=demo.blinkLen;
+        demo.blinkAmp=420+Math.random()*160;
+        // bursty arrivals when drowsy, near-regular when alert
+        const burst=[0.15,0.5,0.95][st];
+        demo.blinkWait=meanGap*(1-burst+burst*2*Math.random());
+      }
+    }else{
+      demo.blinkN--;                         // once per frame, not per channel
+    }
+  }
+  if(S.mode==="eog"){
+    // follow the calibration script when it is running, so the demo can be
+    // calibrated exactly the way a person would be
+    let tgt=null;
+    if(GZ.calPhase>=0) tgt=(GZ.steps||CAL_STEPS)[GZ.calPhase].d;
+    else if(demo.gazeCmd) tgt=demo.gazeCmd;
+
+    if(tgt){
+      const H={left:300,right:-300,up:0,down:0,centre:0,blink:0}[tgt]||0;
+      const V={up:260,down:-260,left:0,right:0,centre:0,blink:0}[tgt]||0;
+      demo.eogHT=H;demo.eogVT=V;
+      if(tgt==="blink"&&Math.random()<.02&&demo.blink<=0) demo.blink=28;
+    }else{
+      if(Math.random()<.004){demo.eogHT=(Math.random()*2-1)*300;demo.eogVT=0;}
+      if(Math.random()<.003&&demo.blink<=0) demo.blink=28;
+    }
+    // saccades are fast; the eye reaches the new position in about 50 ms
+    demo.eogH+=(demo.eogHT-demo.eogH)*0.06;
+    demo.eogV+=(demo.eogVT-demo.eogV)*0.06;
+  }
+  demo.pink=demo.pink*.96+(Math.random()-.5)*26;
+
+  const out=new Array(CH.length);
+  for(let k=0;k<CH.length;k++){
+    let v=2048;
+    if(S.mode==="ecg"){
+      const p=demo.ph, g=(c,w,a)=>a*Math.exp(-Math.pow((p-c)/w,2));
+      const lead=[1,0.72,-0.45,0.9][k];
+      v+= lead*( g(.16,.024,70)-g(.30,.007,90)+g(.325,.009,620)-g(.352,.012,150)+g(.52,.05,160) );
+    }else if(S.mode==="emg"){
+      const sig=EMG_SIG[demo.gest][k], zc=EMG_ZC[demo.gest][k];
+      let n=0; for(let i=0;i<4;i++) n+=Math.random()-.5;
+      if(demo.fat>0){
+        // conduction velocity falls, so the spectrum slides down while amplitude climbs
+        const fc=185-115*demo.fat;
+        const a=1-Math.exp(-2*Math.PI*fc/FS);
+        demo.lp[k]+=a*(n-demo.lp[k]);
+        const norm=Math.sqrt(a/(2-a));
+        v+= (demo.lp[k]/norm)*430*(1+0.55*demo.fat)
+          + Math.sin(2*Math.PI*95*(1-.45*demo.fat)*t)*80*(1+0.5*demo.fat);
+      }else{
+        v+= n*420*sig + Math.sin(2*Math.PI*90*zc*t)*70*sig;
+      }
+    }else if(S.mode==="eog"){
+      // CH1 carries horizontal, CH2 vertical, matching the wiring the card asks for
+      if(k===0)      v+=demo.eogH;
+      else if(k===1) v+=demo.eogV+(demo.blink>0?Math.sin((28-demo.blink)/28*Math.PI)*620:0);
+      else           v+=demo.eogH*0.4+demo.eogV*0.3;
+    }else{
+      // Forehead placement: blinks dominate, cortical rhythm is a minor term.
+      const st=DZ.sim;                       // 0 alert, 1 tiring, 2 drowsy
+      const alphaAmp=[38,30,20][st], thetaAmp=[10,20,34][st];
+      v+=Math.sin(2*Math.PI*10.2*t+k)*alphaAmp*(.5+.5*Math.sin(2*Math.PI*.18*t));
+      v+=Math.sin(2*Math.PI*5.6*t+k*0.7)*thetaAmp;
+      v+=demo.pink*(1-k*.15)+Math.sin(2*Math.PI*3.1*t)*14;
+      if(demo.blinkN>0){
+        // a blink is a smooth bump; it lengthens and slows as tiredness rises
+        const prog=1-demo.blinkN/demo.blinkLen;
+        v+=Math.sin(prog*Math.PI)*demo.blinkAmp;
+      }
+      // synthetic SSVEP: buried well under the ongoing EEG, as it is in reality
+      const g=SSV.test?SSV.cue:SSV.simGaze;
+      if(SSV.running&&g>=0&&g<SSV.freqs.length){
+        const f=SSV.freqs[g], amp=16*(1-k*0.18);
+        v+=Math.sin(2*Math.PI*f*t)*amp+Math.sin(2*Math.PI*f*2*t+0.7)*amp*0.45;
+      }
+    }
+    v+=Math.sin(2*Math.PI*S.mains*t+k*.4)*115;
+    v+=Math.sin(2*Math.PI*S.mains*2*t)*42;
+    v+=Math.sin(2*Math.PI*.22*t+k)*90;
+    v+=(Math.random()-.5)*14;
+    out[k]=Math.max(0,Math.min(4095,v));
+  }
+  if(demo.blink>0) demo.blink--;
+  return out;
+}
+
+/* ======================= canvas ======================= */
+
+const chart=document.getElementById("chart"),cctx=chart.getContext("2d");
+const spec=document.getElementById("spectrum"),sctx=spec.getContext("2d");
+const gridCanvas=document.createElement("canvas");
+let CW=0,CHH=0;
+const MM=3.6, GUT=50;
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+function sizeCanvases(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  for(const c of [chart,spec,fTrend,fJasa,edrT,edrS,gzPad,dzT,dzB,fcT]){
+    const r=c.getBoundingClientRect();
+    c.width=Math.max(1,Math.round(r.width*dpr));
+    c.height=Math.max(1,Math.round(r.height*dpr));
+    c.getContext("2d").setTransform(dpr,0,0,dpr,0,0);
+  }
+  const r=chart.getBoundingClientRect();
+  CW=r.width;CHH=r.height;
+  buildGrid(dpr);
+}
+function buildGrid(dpr){
+  gridCanvas.width=Math.max(1,Math.round(CW*dpr));
+  gridCanvas.height=Math.max(1,Math.round(CHH*dpr));
+  const g=gridCanvas.getContext("2d");
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.fillStyle=css("--card");g.fillRect(0,0,CW,CHH);
+  g.strokeStyle=css("--grid-fine");g.lineWidth=.5;g.beginPath();
+  for(let x=GUT;x<=CW;x+=MM){g.moveTo(Math.round(x)+.25,0);g.lineTo(Math.round(x)+.25,CHH);}
+  for(let y=0;y<=CHH;y+=MM){g.moveTo(GUT,Math.round(y)+.25);g.lineTo(CW,Math.round(y)+.25);}
+  g.stroke();
+  g.strokeStyle=css("--grid-bold");g.lineWidth=.9;g.beginPath();
+  for(let x=GUT;x<=CW;x+=MM*5){g.moveTo(Math.round(x)+.25,0);g.lineTo(Math.round(x)+.25,CHH);}
+  for(let y=0;y<=CHH;y+=MM*5){g.moveTo(GUT,Math.round(y)+.25);g.lineTo(CW,Math.round(y)+.25);}
+  g.stroke();
+  g.fillStyle=css("--paper-deep");g.fillRect(0,0,GUT,CHH);
+  g.strokeStyle=css("--rule");g.lineWidth=1;g.beginPath();
+  g.moveTo(GUT+.5,0);g.lineTo(GUT+.5,CHH);g.stroke();
+}
+
+function drawChart(){
+  cctx.drawImage(gridCanvas,0,0,CW,CHH);
+  const act=CH.filter(c=>c.on);
+  if(!act.length) return;
+  const laneH=CHH/act.length;
+  const plotW=CW-GUT;
+  const pxPerSample=(MM*S.sweep)/FS;
+  const visible=Math.min(dispN,Math.ceil(plotW/pxPerSample)+2);
+  const start=dispN-visible;
+
+  act.forEach((c,li)=>{
+    const top=li*laneH;
+    const mid=S.env? top+laneH*0.86 : top+laneH/2;
+    const span=S.env? laneH*0.8 : laneH/2*0.92;
+
+    if(li>0){
+      cctx.strokeStyle="rgba(25,20,17,.22)";cctx.lineWidth=1;
+      cctx.beginPath();cctx.moveTo(0,top+.5);cctx.lineTo(CW,top+.5);cctx.stroke();
+    }
+    cctx.strokeStyle="rgba(25,20,17,.14)";cctx.setLineDash([2,4]);cctx.lineWidth=1;
+    cctx.beginPath();cctx.moveTo(GUT,mid+.5);cctx.lineTo(CW,mid+.5);cctx.stroke();
+    cctx.setLineDash([]);
+
+    cctx.fillStyle=css(c.pen);
+    cctx.fillRect(10,top+laneH/2-15,3,10);
+    cctx.font='600 12px "Barlow Condensed", sans-serif';
+    cctx.fillText("CH"+(c.i+1),18,top+laneH/2-5.5);
+    cctx.fillStyle=css("--ink-faint");
+    cctx.font='400 9px "IBM Plex Mono", monospace';
+    cctx.fillText(PINLBL[c.i],10,top+laneH/2+8);
+
+    if(visible<2) return;
+    let peak=1;
+    for(let i=start;i<dispN;i++){const a=Math.abs(c.disp[i]);if(a>peak)peak=a;}
+    const target=S.auto?peak*1.15:(S.fixedScale/1000/uvPerCount())*(span/(MM*5));
+    c.scale+=(target-c.scale)*(S.auto?.06:.4);
+    if(c.scale<1) c.scale=1;
+
+    cctx.save();
+    cctx.beginPath();cctx.rect(GUT,top,plotW,laneH);cctx.clip();
+    cctx.lineWidth=1.5;cctx.lineJoin="round";cctx.lineCap="round";
+    cctx.strokeStyle=css(c.pen);
+    cctx.beginPath();
+    for(let i=0;i<visible;i++){
+      const x=CW-(visible-1-i)*pxPerSample;
+      const y=mid-(c.disp[start+i]/c.scale)*span;
+      if(i===0) cctx.moveTo(x,y); else cctx.lineTo(x,y);
+    }
+    cctx.stroke();
+    const ly=mid-(c.disp[dispN-1]/c.scale)*span;
+    cctx.fillStyle=css(c.pen);
+    cctx.beginPath();cctx.arc(CW-1.5,Math.max(top+2,Math.min(top+laneH-2,ly)),2.4,0,Math.PI*2);cctx.fill();
+    cctx.restore();
+  });
+}
+
+function drawSpectrum(){
+  const r=spec.getBoundingClientRect(),W=r.width,H=r.height;
+  sctx.fillStyle=css("--card");sctx.fillRect(0,0,W,H);
+  const c=CH[S.specCh]; if(!c) return;
+  const fMax=250,pad=26,plotH=H-pad-8,x0=28,plotW=W-x0-8;
+  const xOf=f=>x0+(f/fMax)*plotW;
+
+  sctx.fillStyle="rgba(13,91,87,.10)";
+  sctx.beginPath();sctx.moveTo(x0,H-pad);
+  for(let f=0;f<=fMax;f++) sctx.lineTo(xOf(f),H-pad-Math.min(1,chainMag(f))*plotH);
+  sctx.lineTo(xOf(fMax),H-pad);sctx.closePath();sctx.fill();
+  sctx.strokeStyle="rgba(13,91,87,.55)";sctx.lineWidth=1;sctx.beginPath();
+  for(let f=0;f<=fMax;f++){const x=xOf(f),y=H-pad-Math.min(1,chainMag(f))*plotH;f?sctx.lineTo(x,y):sctx.moveTo(x,y);}
+  sctx.stroke();
+
+  sctx.fillStyle=css("--ink-faint");sctx.font='500 10px "IBM Plex Mono", monospace';sctx.textAlign="center";
+  for(const f of [0,50,100,150,200,250]){sctx.fillRect(xOf(f),H-pad,1,4);sctx.fillText(f,xOf(f),H-pad+15);}
+  sctx.textAlign="left";sctx.fillText("Hz",4,H-pad+15);
+
+  const nB=NFFT/2,binHz=FS/NFFT;
+  const sc=v=>{const db=20*Math.log10(v+1e-6);return Math.max(0,Math.min(1,(db+60)/72));};
+  function plot(arr,color,w,fill){
+    sctx.beginPath();sctx.moveTo(x0,H-pad);
+    for(let i=1;i<nB;i++){const f=i*binHz;if(f>fMax)break;sctx.lineTo(xOf(f),H-pad-sc(arr[i])*plotH);}
+    if(fill){sctx.lineTo(xOf(fMax),H-pad);sctx.closePath();sctx.fillStyle=fill;sctx.fill();}
+    sctx.strokeStyle=color;sctx.lineWidth=w;sctx.stroke();
+  }
+  plot(c.magRaw,css("--grid-bold"),1,null);
+  plot(c.magFilt,css(c.pen),1.5,"rgba(25,20,17,.07)");
+
+  sctx.strokeStyle="rgba(166,46,24,.5)";sctx.setLineDash([3,3]);sctx.lineWidth=1;
+  sctx.beginPath();sctx.moveTo(xOf(S.mains),8);sctx.lineTo(xOf(S.mains),H-pad);sctx.stroke();
+  sctx.setLineDash([]);
+  sctx.fillStyle=css("--warn");sctx.font='600 9px "Barlow Condensed", sans-serif';
+  sctx.fillText(S.mains+" Hz",xOf(S.mains)+4,14);
+}
+
+/* ======================= fatigue plots ======================= */
+
+const fTrend=document.getElementById("fatTrend"),tctx=fTrend.getContext("2d");
+const fJasa=document.getElementById("fatJasa"),jctx=fJasa.getContext("2d");
+
+function paperBg(ctx,W,H,x0,y0){
+  ctx.fillStyle=css("--card");ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle=css("--grid-fine");ctx.lineWidth=.5;ctx.beginPath();
+  for(let x=x0;x<=W;x+=MM){ctx.moveTo(Math.round(x)+.25,0);ctx.lineTo(Math.round(x)+.25,H);}
+  for(let y=y0;y<=H;y+=MM){ctx.moveTo(x0,Math.round(y)+.25);ctx.lineTo(W,Math.round(y)+.25);}
+  ctx.stroke();
+  ctx.strokeStyle=css("--grid-bold");ctx.lineWidth=.85;ctx.beginPath();
+  for(let x=x0;x<=W;x+=MM*5){ctx.moveTo(Math.round(x)+.25,0);ctx.lineTo(Math.round(x)+.25,H);}
+  for(let y=y0;y<=H;y+=MM*5){ctx.moveTo(x0,Math.round(y)+.25);ctx.lineTo(W,Math.round(y)+.25);}
+  ctx.stroke();
+}
+
+function drawTrend(){
+  const r=fTrend.getBoundingClientRect(),W=r.width,H=r.height;
+  const padL=40,padB=24,padT=14;
+  paperBg(tctx,W,H,padL,0);
+  tctx.fillStyle=css("--paper-deep");tctx.fillRect(0,0,padL,H);
+  tctx.strokeStyle=css("--rule");tctx.lineWidth=1;
+  tctx.beginPath();tctx.moveTo(padL+.5,0);tctx.lineTo(padL+.5,H);tctx.stroke();
+
+  const e=FAT.epochs;
+  tctx.font='600 9.5px "Barlow Condensed", sans-serif';
+  if(e.length<2||FAT.mdf0===null){
+    tctx.fillStyle=css("--ink-faint");
+    tctx.font='600 11px "Barlow Condensed", sans-serif';
+    tctx.fillText("MEDIAN FREQUENCY AND AMPLITUDE VS ACTIVE TIME",padL+10,H/2);
+    return;
+  }
+  const tMax=Math.max(20,e[e.length-1].t);
+  let lo=88,hi=112;
+  for(const p of e){
+    lo=Math.min(lo,p.s/FAT.mdf0*100,p.rms/FAT.rms0*100);
+    hi=Math.max(hi,p.s/FAT.mdf0*100,p.rms/FAT.rms0*100);
+  }
+  lo=Math.max(0,lo-6);hi=hi+6;
+  const xOf=t=>padL+(t/tMax)*(W-padL-8);
+  const yOf=v=>padT+(1-(v-lo)/(hi-lo))*(H-padT-padB);
+
+  // 100% reference
+  tctx.strokeStyle="rgba(25,20,17,.3)";tctx.setLineDash([3,3]);tctx.lineWidth=1;
+  tctx.beginPath();tctx.moveTo(padL,yOf(100));tctx.lineTo(W-8,yOf(100));tctx.stroke();
+  tctx.setLineDash([]);
+
+  function line(sel,color,w){
+    tctx.strokeStyle=color;tctx.lineWidth=w;tctx.beginPath();
+    e.forEach((p,i)=>{const x=xOf(p.t),y=yOf(sel(p));i?tctx.lineTo(x,y):tctx.moveTo(x,y);});
+    tctx.stroke();
+  }
+  line(p=>p.rms/FAT.rms0*100,css("--pen2"),1.4);
+  line(p=>p.s/FAT.mdf0*100,css("--cal"),2);
+
+  // regression overlay on MDF
+  const rg=fatRegression();
+  if(rg&&rg.r2>=0.2){
+    const b=FAT.mdf0;
+    let sx=0,sy=0;for(const p of e){sx+=p.t;sy+=p.s;}
+    const mx=sx/e.length,my=sy/e.length;
+    const y1=(my+rg.slope*(0-mx))/b*100, y2=(my+rg.slope*(tMax-mx))/b*100;
+    tctx.strokeStyle="rgba(13,91,87,.45)";tctx.setLineDash([5,4]);tctx.lineWidth=1.2;
+    tctx.beginPath();tctx.moveTo(xOf(0),yOf(y1));tctx.lineTo(xOf(tMax),yOf(y2));tctx.stroke();
+    tctx.setLineDash([]);
+  }
+
+  tctx.fillStyle=css("--ink-faint");
+  tctx.font='500 9.5px "IBM Plex Mono", monospace';
+  tctx.textAlign="right";
+  for(const v of [lo,100,hi]) tctx.fillText(v.toFixed(0)+"%",padL-6,yOf(v)+3);
+  tctx.textAlign="center";
+  for(let t=0;t<=tMax;t+=Math.max(10,Math.round(tMax/5/10)*10)) tctx.fillText(t+"s",xOf(t),H-8);
+  tctx.textAlign="left";
+  tctx.font='600 9.5px "Barlow Condensed", sans-serif';
+  tctx.fillStyle=css("--cal");tctx.fillText("MEDIAN FREQ",padL+8,padT);
+  tctx.fillStyle=css("--pen2");tctx.fillText("AMPLITUDE",padL+82,padT);
+}
+
+function drawJasa(){
+  const r=fJasa.getBoundingClientRect(),W=r.width,H=r.height;
+  paperBg(jctx,W,H,0,0);
+  const cx=W/2,cy=H/2;
+  let m=25;
+  const rg=fatRegression();
+  for(const p of FAT.epochs){
+    if(FAT.mdf0===null) break;
+    m=Math.max(m,Math.abs(p.s/FAT.mdf0*100-100),Math.abs(p.rms/FAT.rms0*100-100));
+  }
+  m=Math.ceil(m*1.15/5)*5;
+  const xOf=v=>cx+(v/m)*(W/2-16);
+  const yOf=v=>cy-(v/m)*(H/2-16);
+
+  // quadrant tint: fatigue quadrant is the one that matters
+  jctx.fillStyle="rgba(166,46,24,.07)";jctx.fillRect(cx,cy,W/2,H/2);
+
+  jctx.strokeStyle="rgba(25,20,17,.45)";jctx.lineWidth=1;
+  jctx.beginPath();jctx.moveTo(0,cy);jctx.lineTo(W,cy);jctx.moveTo(cx,0);jctx.lineTo(cx,H);jctx.stroke();
+
+  jctx.font='600 9.5px "Barlow Condensed", sans-serif';
+  jctx.fillStyle=css("--ink-faint");
+  jctx.textAlign="left";  jctx.fillText("FORCE INCREASE",cx+8,16);
+  jctx.fillStyle=css("--warn");
+  jctx.fillText("FATIGUE",cx+8,H-8);
+  jctx.fillStyle=css("--ink-faint");
+  jctx.textAlign="right";
+  jctx.fillText("RECOVERY",cx-8,16);
+  jctx.fillText("FORCE DECREASE",cx-8,H-8);
+
+  jctx.textAlign="center";
+  jctx.font='500 9px "IBM Plex Mono", monospace';
+  jctx.fillText("+"+m+"% amplitude",cx+(W/2-16)/2+cx/2*0,cy+13);
+  jctx.save();jctx.translate(cx-13,cy-(H/2-16)/2);jctx.rotate(-Math.PI/2);
+  jctx.fillText("+"+m+"% median freq",0,0);jctx.restore();
+
+  if(FAT.mdf0===null||FAT.epochs.length<2){
+    jctx.fillStyle=css("--ink-faint");
+    jctx.font='600 10px "Barlow Condensed", sans-serif';
+    jctx.fillText("AMPLITUDE VS FREQUENCY SHIFT",cx,cy-24);
+    return;
+  }
+  const pts=FAT.epochs.slice(-140);
+  pts.forEach((p,i)=>{
+    const dR=p.rms/FAT.rms0*100-100, dM=p.s/FAT.mdf0*100-100;
+    const a=0.12+0.55*(i/pts.length);
+    jctx.fillStyle="rgba(25,20,17,"+a.toFixed(2)+")";
+    jctx.beginPath();jctx.arc(xOf(dR),yOf(dM),1.9,0,Math.PI*2);jctx.fill();
+  });
+  if(rg){
+    jctx.strokeStyle=css("--card");jctx.lineWidth=2.5;
+    jctx.fillStyle=rg.quad===1?css("--warn"):css("--cal");
+    jctx.beginPath();jctx.arc(xOf(rg.dRms),yOf(rg.dMdf),5,0,Math.PI*2);jctx.fill();jctx.stroke();
+  }
+}
+
+/* ======================= SSVEP UI ======================= */
+
+function buildTargets(){
+  const el=document.getElementById("ssvTargets");
+  el.innerHTML="";
+  SSV.freqs.forEach((f,i)=>{
+    const d=document.createElement("div");
+    d.className="tgt";
+    d.innerHTML='<div class="flick"></div><div class="lab">'+String.fromCharCode(65+i)+
+                '</div><div class="hz">'+f.toFixed(2)+' Hz</div>';
+    el.appendChild(d);
+  });
+  const sim=document.getElementById("ssvSim");
+  sim.innerHTML='<option value="-1">None</option>';
+  SSV.freqs.forEach((f,i)=>{
+    const o=document.createElement("option");
+    o.value=i;o.textContent=String.fromCharCode(65+i)+" — "+f.toFixed(2)+" Hz";
+    sim.appendChild(o);
+  });
+  sim.value=SSV.simGaze;
+}
+
+/* Sinusoidal luminance modulation driven by frame count. Sampling a sinusoid
+   works at any frequency, unlike a square wave, which on a 60 Hz panel can only
+   land exactly on 60/N and jitters at everything else — and that jitter smears
+   the very spectral peak we are trying to detect. */
+function renderFlicker(){
+  const el=document.getElementById("ssvTargets");
+  if(!el.children.length) return;
+  for(let i=0;i<SSV.freqs.length;i++){
+    const node=el.children[i]; if(!node) continue;
+    const fl=node.querySelector(".flick");
+    if(!SSV.running){ fl.style.opacity=0; node.classList.remove("cue","hit"); continue; }
+    const ph=2*Math.PI*SSV.freqs[i]*SSV.frame/SSV.refresh;
+    fl.style.opacity=(0.5*(1+Math.sin(ph))*SSV.contrast).toFixed(3);
+    node.classList.toggle("cue",SSV.test&&SSV.cue===i);
+    node.classList.toggle("hit",!SSV.test&&SSV.best===i);
+  }
+}
+
+function paintSsvep(){
+  document.getElementById("ssvContrastLv").textContent=Math.round(SSV.contrast*100)+"%";
+  const bars=document.getElementById("ssvBars");
+  bars.innerHTML=SSV.freqs.map((f,i)=>{
+    const r=SSV.rhos[i]||0;
+    const win=SSV.best===i;
+    return '<div class="rhorow'+(win?' win':'')+'"><span class="rn">'+
+      String.fromCharCode(65+i)+' · '+f.toFixed(1)+'</span>'+
+      '<span class="rt"><span style="width:'+(r*100).toFixed(1)+'%"></span>'+
+      '<i style="left:'+(SSV.thresh*100).toFixed(1)+'%"></i></span>'+
+      '<span class="rv">'+r.toFixed(3)+'</span></div>';
+  }).join("");
+
+  const acc=SSV.testDone?SSV.testHits/SSV.testDone:0;
+  statBlock("ssvStats",[
+    ["Refresh",SSV.refresh.toFixed(0),"Hz"],
+    ["Window",SSV.win.toFixed(1),"s"],
+    ["Threshold",SSV.thresh.toFixed(2),""],
+    ["Trials",SSV.testDone,""],
+    ["Accuracy",SSV.testDone?(acc*100).toFixed(0):"—","%"],
+    ["ITR",SSV.testDone?itr(acc,SSV.freqs.length,SSV.testSecs).toFixed(0):"—","bit/min"]
+  ]);
+
+  if(!SSV.running){
+    setSsv("Stimulus off","—","Place electrodes at Oz and enable the stimulus");
+    return;
+  }
+  if(SSV.test){
+    const left=Math.max(0,SSV.testSecs-(performance.now()-SSV.testT0)/1000);
+    setSsv("Look at target "+String.fromCharCode(65+SSV.cue),
+      SSV.best>=0?String.fromCharCode(65+SSV.best):"—",
+      "trial "+(SSV.testDone+1)+" of "+SSV.testSeq.length+" · "+left.toFixed(1)+" s left · rho "+SSV.bestRho.toFixed(3));
+    return;
+  }
+  if(SSV.best>=0){
+    setSsv("Detected",String.fromCharCode(65+SSV.best)+" · "+SSV.freqs[SSV.best].toFixed(1)+" Hz",
+      "rho "+SSV.bestRho.toFixed(3)+" against a "+SSV.thresh.toFixed(2)+" threshold");
+  }else{
+    setSsv("No target","—","strongest rho "+SSV.bestRho.toFixed(3)+", below the "+SSV.thresh.toFixed(2)+" threshold");
+  }
+}
+function setSsv(l,b,sub){
+  document.getElementById("sLbl").textContent=l;
+  document.getElementById("sBig").textContent=b;
+  document.getElementById("sSub").textContent=sub||"";
+}
+
+function ssvTestTick(){
+  if(!SSV.test) return;
+  if(performance.now()-SSV.testT0 < SSV.testSecs*1000) return;
+  if(SSV.best===SSV.cue) SSV.testHits++;
+  SSV.testDone++;
+  SSV.testIdx++;
+  if(SSV.testIdx>=SSV.testSeq.length){
+    SSV.test=false;SSV.cue=-1;
+    document.getElementById("btnSsvTest").textContent="Accuracy test";
+    const acc=SSV.testHits/Math.max(1,SSV.testDone);
+    setSsv("Test complete",(acc*100).toFixed(0)+"%",
+      SSV.testHits+" of "+SSV.testDone+" correct · "+
+      itr(acc,SSV.freqs.length,SSV.testSecs).toFixed(0)+" bit/min");
+    return;
+  }
+  SSV.cue=SSV.testSeq[SSV.testIdx];
+  SSV.testT0=performance.now();
+}
+
+/* ======================= focus plots ======================= */
+
+const fcT=document.getElementById("fcTrend"),fctx=fcT.getContext("2d");
+
+function drawFcTrend(){
+  const r=fcT.getBoundingClientRect(),W=r.width,H=r.height;
+  const padL=40,padT=14,padB=22;
+  paperBg(fctx,W,H,padL,0);
+  fctx.fillStyle=css("--paper-deep");fctx.fillRect(0,0,padL,H);
+  fctx.strokeStyle=css("--rule");fctx.lineWidth=1;
+  fctx.beginPath();fctx.moveTo(padL+.5,0);fctx.lineTo(padL+.5,H);fctx.stroke();
+
+  const plotH=H-padT-padB, plotW=W-padL-8;
+  if(FC.hist.length<2){
+    fctx.fillStyle=css("--ink-faint");
+    fctx.font='600 11px "Barlow Condensed", sans-serif';
+    fctx.fillText("TIME SINCE LAST BLINK",padL+10,H/2);
+    return;
+  }
+  const h=FC.hist, t1=h[h.length-1].t, span=Math.max(180,t1-h[0].t);
+  let gMax=FC.deepGap*1.8;
+  for(const p of h) if(p.gap>gMax) gMax=p.gap;
+  gMax*=1.08;
+  const xOf=t=>padL+((t-(t1-span))/span)*plotW;
+  const yOf=g=>padT+plotH-(g/gMax)*plotH;
+
+  // deep-focus band
+  fctx.fillStyle="rgba(13,91,87,.09)";
+  fctx.fillRect(padL,padT,plotW,yOf(FC.deepGap)-padT);
+  fctx.strokeStyle=css("--cal");fctx.setLineDash([4,4]);fctx.lineWidth=1;
+  fctx.beginPath();fctx.moveTo(padL,yOf(FC.deepGap));fctx.lineTo(W-8,yOf(FC.deepGap));
+  fctx.stroke();fctx.setLineDash([]);
+
+  fctx.strokeStyle=css("--ink");fctx.lineWidth=1.5;fctx.beginPath();
+  h.forEach((p,i)=>{const x=xOf(p.t),y=yOf(p.gap);i?fctx.lineTo(x,y):fctx.moveTo(x,y);});
+  fctx.stroke();
+
+  fctx.fillStyle=css("--ink-faint");
+  fctx.font='500 9.5px "IBM Plex Mono", monospace';
+  fctx.textAlign="right";
+  fctx.fillText(gMax.toFixed(0)+"s",padL-6,yOf(gMax)+9);
+  fctx.fillText(FC.deepGap+"s",padL-6,yOf(FC.deepGap)+3);
+  fctx.fillText("0",padL-6,padT+plotH);
+  fctx.textAlign="left";
+  fctx.font='600 9.5px "Barlow Condensed", sans-serif';
+  fctx.fillStyle=css("--cal");fctx.fillText("DEEP FOCUS",padL+8,padT+11);
+}
+
+function paintFocus(){
+  const el=FC.running? sampleCount/FS-FC.t0 : 0;
+  document.getElementById("fcBest").innerHTML=
+    (FC.bestRun>=60? (FC.bestRun/60).toFixed(1) : (FC.bestRun>0?"<1":"—"))+"<small> min</small>";
+  document.getElementById("fcRuns").textContent=FC.runs;
+
+  statBlock("fcStats",[
+    ["Deep",fmtClock(FC.deepS),""],
+    ["Engaged",fmtClock(FC.engagedS),""],
+    ["Idle",fmtClock(FC.idleS),""],
+    ["Deep share",el>0?(FC.deepS/el*100).toFixed(0):"—","%"]
+  ]);
+
+  // timeline bar, compressed to at most 240 slots
+  const tl=FC.timeline;
+  const bar=document.getElementById("fcBar");
+  if(!tl.length){ bar.innerHTML=""; return; }
+  const N=Math.min(240,tl.length);
+  const step=tl.length/N;
+  let html="";
+  for(let i=0;i<N;i++){
+    const st=tl[Math.floor(i*step)].state;
+    html+='<i class="'+st+'" style="flex:1"></i>';
+  }
+  bar.innerHTML=html;
+}
+
+/* ======================= drowsiness plots ======================= */
+
+const dzT=document.getElementById("dzTrend"),dtctx=dzT.getContext("2d");
+const dzB=document.getElementById("dzBlink"),dbctx=dzB.getContext("2d");
+
+function drawDzTrend(){
+  const r=dzT.getBoundingClientRect(),W=r.width,H=r.height;
+  const padL=40,padT=14,padB=22;
+  paperBg(dtctx,W,H,padL,0);
+  dtctx.fillStyle=css("--paper-deep");dtctx.fillRect(0,0,padL,H);
+  dtctx.strokeStyle=css("--rule");dtctx.lineWidth=1;
+  dtctx.beginPath();dtctx.moveTo(padL+.5,0);dtctx.lineTo(padL+.5,H);dtctx.stroke();
+
+  const plotH=H-padT-padB, plotW=W-padL-8;
+  dtctx.fillStyle="rgba(166,46,24,.07)";
+  dtctx.fillRect(padL,padT,plotW,plotH*0.30);
+  dtctx.fillStyle="rgba(222,145,121,.07)";
+  dtctx.fillRect(padL,padT+plotH*0.30,plotW,plotH*0.30);
+
+  if(DZ.hist.length<2){
+    dtctx.fillStyle=css("--ink-faint");
+    dtctx.font='600 11px "Barlow Condensed", sans-serif';
+    dtctx.fillText("DROWSINESS SCORE OVER TIME",padL+10,H/2);
+    return;
+  }
+  const h=DZ.hist, t1=h[h.length-1].t, span=Math.max(120,t1-h[0].t);
+  const xOf=t=>padL+((t-(t1-span))/span)*plotW;
+  const yOf=v=>padT+(1-v)*plotH;
+
+  dtctx.strokeStyle=css("--cal");dtctx.lineWidth=2;dtctx.beginPath();
+  h.forEach((p,i)=>{const x=xOf(p.t),y=yOf(p.s);i?dtctx.lineTo(x,y):dtctx.moveTo(x,y);});
+  dtctx.stroke();
+
+  dtctx.fillStyle=css("--ink-faint");
+  dtctx.font='500 9.5px "IBM Plex Mono", monospace';
+  dtctx.textAlign="right";
+  dtctx.fillText("100",padL-6,yOf(1)+9);
+  dtctx.fillText("70",padL-6,yOf(0.7)+3);
+  dtctx.fillText("40",padL-6,yOf(0.4)+3);
+  dtctx.fillText("0",padL-6,yOf(0));
+  dtctx.textAlign="left";
+  dtctx.font='600 9.5px "Barlow Condensed", sans-serif';
+  dtctx.fillStyle=css("--warn");dtctx.fillText("DROWSY",padL+8,padT+11);
+}
+
+function drawDzBlink(){
+  const r=dzB.getBoundingClientRect(),W=r.width,H=r.height;
+  const padL=40,padT=14,padB=22;
+  paperBg(dbctx,W,H,padL,0);
+  dbctx.fillStyle=css("--paper-deep");dbctx.fillRect(0,0,padL,H);
+  dbctx.strokeStyle=css("--rule");dbctx.lineWidth=1;
+  dbctx.beginPath();dbctx.moveTo(padL+.5,0);dbctx.lineTo(padL+.5,H);dbctx.stroke();
+
+  const plotH=H-padT-padB, plotW=W-padL-8;
+  const t=sampleCount/FS, span=180;
+  const recent=DZ.blinks.filter(b=>t-b.t<=span);
+  if(!recent.length){
+    dbctx.fillStyle=css("--ink-faint");
+    dbctx.font='600 11px "Barlow Condensed", sans-serif';
+    dbctx.fillText("BLINK DURATION, LAST 3 MINUTES",padL+10,H/2);
+    return;
+  }
+  let mx=500;
+  for(const b of recent) if(b.dur>mx) mx=b.dur;
+  const durMax=mx*1.1;
+  const xOf=tt=>padL+((tt-(t-span))/span)*plotW;
+  const yOf=d=>padT+plotH-(d/durMax)*plotH;
+
+  if(DZ.base){
+    dbctx.strokeStyle="rgba(25,20,17,.35)";dbctx.setLineDash([4,4]);dbctx.lineWidth=1;
+    dbctx.beginPath();dbctx.moveTo(padL,yOf(DZ.base.dur));dbctx.lineTo(W-8,yOf(DZ.base.dur));
+    dbctx.stroke();dbctx.setLineDash([]);
+  }
+  for(const b of recent){
+    const x=xOf(b.t), y=yOf(b.dur);
+    dbctx.strokeStyle=b.dur>300?css("--warn"):css("--cal");
+    dbctx.lineWidth=1.6;
+    dbctx.beginPath();dbctx.moveTo(x,padT+plotH);dbctx.lineTo(x,y);dbctx.stroke();
+  }
+  dbctx.fillStyle=css("--ink-faint");
+  dbctx.font='500 9.5px "IBM Plex Mono", monospace';
+  dbctx.textAlign="right";
+  dbctx.fillText(durMax.toFixed(0),padL-6,yOf(durMax)+9);
+  dbctx.fillText("0 ms",padL-6,padT+plotH);
+  dbctx.textAlign="left";
+  dbctx.font='600 9.5px "Barlow Condensed", sans-serif';
+  dbctx.fillStyle=css("--ink-faint");
+  dbctx.fillText("BLINK DURATION",padL+8,padT+11);
+}
+
+function paintDrowse(){
+  document.getElementById("dzThrLv").textContent="threshold "+DZ.thr+" counts";
+  const t=sampleCount/FS;
+  const recent=DZ.blinks.filter(b=>t-b.t<=DZ.win);
+  statBlock("dzStats",[
+    ["Blink rate",DZ.rate?DZ.rate.toFixed(0):"—","/min"],
+    ["Mean length",DZ.meanDur?DZ.meanDur.toFixed(0):"—","ms"],
+    ["Long blinks",recent.length?(DZ.longFrac*100).toFixed(0):"—","%"],
+    ["Burstiness",DZ.burst?DZ.burst.toFixed(2):"—",""],
+    ["Theta/alpha",DZ.thetaAlpha?DZ.thetaAlpha.toFixed(2):"—",""],
+    ["Baseline",DZ.base?DZ.base.dur.toFixed(0):"not set",DZ.base?"ms":""]
+  ]);
+  const pips=document.getElementById("dzPips");
+  pips.innerHTML=recent.slice(-48).map(b=>
+    '<i class="'+(b.dur>300?'long':'')+'" style="height:'+
+    Math.max(4,Math.min(16,b.dur/32)).toFixed(0)+'px"></i>').join("");
+}
+
+/* ======================= gaze plots ======================= */
+
+const gzPad=document.getElementById("gzPad"),gctx=gzPad.getContext("2d");
+
+function drawGazePad(){
+  const r=gzPad.getBoundingClientRect(),W=r.width,H=r.height;
+  paperBg(gctx,W,H,0,0);
+  const cx=W/2, cy=H/2;
+  const th=GZ.sens, m=th*2.6;
+  const xOf=v=>cx+(v/m)*(W/2-14);
+  const yOf=v=>cy-(v/m)*(H/2-14);
+
+  gctx.strokeStyle="rgba(25,20,17,.35)";gctx.lineWidth=1;
+  gctx.beginPath();gctx.moveTo(0,cy);gctx.lineTo(W,cy);gctx.moveTo(cx,0);gctx.lineTo(cx,H);gctx.stroke();
+
+  // threshold box: outside this, a direction registers
+  gctx.strokeStyle=css("--cal");gctx.setLineDash([4,4]);gctx.lineWidth=1;
+  gctx.strokeRect(xOf(-th),yOf(th),xOf(th)-xOf(-th),yOf(-th)-yOf(th));
+  gctx.setLineDash([]);
+
+  gctx.font='600 10px "Barlow Condensed", sans-serif';
+  gctx.fillStyle=css("--ink-faint");
+  gctx.textAlign="center";
+  gctx.fillText("UP",cx,16);
+  gctx.fillText("DOWN",cx,H-7);
+  gctx.textAlign="left";  gctx.fillText("RIGHT",6,cy-7);
+  gctx.textAlign="right"; gctx.fillText("LEFT",W-6,cy-7);
+  gctx.textAlign="left";
+
+  const det0=1-GZ.kVH*GZ.kHV;
+  const hu0=Math.abs(det0)>1e-3?(GZ.h-GZ.kHV*GZ.v)/det0:GZ.h;
+  const vu0=Math.abs(det0)>1e-3?(GZ.v-GZ.kVH*GZ.h)/det0:GZ.v;
+  const H0=hu0*GZ.gainH, V0=vu0*GZ.gainV;
+  GZ.trail.forEach((p,i)=>{
+    const a=0.06+0.4*(i/Math.max(1,GZ.trail.length));
+    gctx.fillStyle="rgba(25,20,17,"+a.toFixed(2)+")";
+    gctx.beginPath();gctx.arc(xOf(p[0]),yOf(p[1]),1.8,0,Math.PI*2);gctx.fill();
+  });
+
+  const px=Math.max(8,Math.min(W-8,xOf(H0))), py=Math.max(8,Math.min(H-8,yOf(V0)));
+  gctx.strokeStyle=css("--card");gctx.lineWidth=3;
+  gctx.fillStyle=GZ.blink?css("--warn"):(GZ.dir==="centre"?css("--ink"):css("--cal"));
+  gctx.beginPath();gctx.arc(px,py,7,0,Math.PI*2);gctx.fill();gctx.stroke();
+
+  if(GZ.blink){
+    gctx.fillStyle=css("--warn");
+    gctx.font='600 11px "Barlow Condensed", sans-serif';
+    gctx.textAlign="center";gctx.fillText("BLINK",cx,cy+H/2-26);gctx.textAlign="left";
+  }
+}
+
+function renderMenu(){
+  const el=document.getElementById("gzMenu");
+  const keys=["left","right","up","down"];
+  const n=GZ.axes>1?4:2;
+  el.innerHTML=GZ.items.slice(0,n).map((it,i)=>{
+    const active=GZ.dir===keys[i];
+    const prog=active?Math.min(1,GZ.hold/GZ.dwell):0;
+    const picked=GZ.picked===i&&performance.now()-GZ.pickT<1400;
+    return '<div class="mi'+(active?' on':'')+(picked?' picked':'')+'">'+
+      '<div class="fill" style="width:'+(prog*100).toFixed(0)+'%"></div>'+
+      '<div class="mn">'+it.n+'</div><div class="mk">'+it.k+'</div></div>';
+  }).join("");
+}
+
+function paintGaze(){
+  document.getElementById("gzSensLv").textContent=
+    "threshold "+GZ.sens+" · now "+Math.abs(GZ.h*GZ.gainH).toFixed(0);
+
+  if(GZ.calPhase>=0){
+    const st=GZ.steps[GZ.calPhase];
+    const dur=st.d==="centre"?2200:3200;
+    const el=performance.now()-GZ.calT0;
+    document.getElementById("calPhase").textContent=
+      "Step "+(GZ.calPhase+1)+" of "+GZ.steps.length;
+    document.getElementById("calInstr").textContent=st.t;
+    document.getElementById("calBar").style.width=
+      Math.min(100,el/dur*100).toFixed(0)+"%";
+    setGaze("Calibrating",st.t.split(",")[0],"hold steady until the bar fills");
+  }
+
+  statBlock("gzStats",[
+    ["Direction",GZ.dir==="centre"?"centre":GZ.dir,""],
+    ["Hold",GZ.hold>0?GZ.hold.toFixed(1):"0.0","s"],
+    ["H swing",GZ.swingH?GZ.swingH.toFixed(0):"—",""],
+    ["V swing",GZ.axes>1?(GZ.swingV?GZ.swingV.toFixed(0):"—"):"n/a",""],
+    ["Cross-talk",GZ.axes>1?(Math.abs(GZ.crossVH)*100).toFixed(0):"n/a","%"],
+    ["Saccades",GZ.sacCount,""],
+    ["Blinks",GZ.axes>1?GZ.blinkCount:"n/a",""]
+  ]);
+
+  renderMenu();
+
+  if(GZ.calPhase>=0) return;
+  if(!GZ.running) return;
+
+  if(GZ.picked>=0&&performance.now()-GZ.pickT<1400){
+    setGaze("Selected",GZ.items[GZ.picked].n.toUpperCase(),
+      "by "+GZ.items[GZ.picked].k+" · "+GZ.sacCount+" saccades so far");
+  }else if(GZ.dir!=="centre"){
+    setGaze("Looking "+GZ.dir,GZ.dir.toUpperCase(),
+      "hold "+GZ.hold.toFixed(1)+" of "+GZ.dwell.toFixed(1)+" s to select");
+  }else{
+    setGaze("Centre","—","move your eyes toward one of the items");
+  }
+}
+
+/* ======================= EDR plots ======================= */
+
+const edrT=document.getElementById("edrTrace"),etctx=edrT.getContext("2d");
+const edrS=document.getElementById("edrSpec"),esctx=edrS.getContext("2d");
+
+function drawEdrTrace(){
+  const r=edrT.getBoundingClientRect(),W=r.width,H=r.height;
+  const padL=44,padT=14,padB=22;
+  paperBg(etctx,W,H,padL,0);
+  etctx.fillStyle=css("--paper-deep");etctx.fillRect(0,0,padL,H);
+  etctx.strokeStyle=css("--rule");etctx.lineWidth=1;
+  etctx.beginPath();etctx.moveTo(padL+.5,0);etctx.lineTo(padL+.5,H);etctx.stroke();
+
+  if(EDR.beats.length<6){
+    etctx.fillStyle=css("--ink-faint");
+    etctx.font='600 11px "Barlow Condensed", sans-serif';
+    etctx.fillText("R-WAVE AMPLITUDE AND INSTANTANEOUS RATE",padL+10,H/2);
+    return;
+  }
+  const lanes=[[EDR.am,"--pen2","R AMPLITUDE"],[EDR.rsa,"--cal","HEART RATE"]];
+  const laneH=(H-padT-padB)/2;
+  lanes.forEach((L,li)=>{
+    const arr=L[0], top=padT+li*laneH;
+    let mn=1e9,mx=-1e9;
+    for(let i=0;i<EDR_N;i++){if(arr[i]<mn)mn=arr[i];if(arr[i]>mx)mx=arr[i];}
+    const span=Math.max(1e-6,mx-mn);
+    etctx.strokeStyle=css(L[1]);etctx.lineWidth=1.6;etctx.beginPath();
+    for(let i=0;i<EDR_N;i++){
+      const x=padL+(i/(EDR_N-1))*(W-padL-8);
+      const y=top+laneH*0.88-((arr[i]-mn)/span)*laneH*0.76;
+      i?etctx.lineTo(x,y):etctx.moveTo(x,y);
+    }
+    etctx.stroke();
+    etctx.fillStyle=css(L[1]);
+    etctx.font='600 9.5px "Barlow Condensed", sans-serif';
+    etctx.fillText(L[2],padL+8,top+12);
+  });
+  etctx.fillStyle=css("--ink-faint");
+  etctx.font='500 9.5px "IBM Plex Mono", monospace';
+  etctx.textAlign="center";
+  for(let sec=0;sec<=64;sec+=16)
+    etctx.fillText("-"+(64-sec)+"s",padL+(sec/64)*(W-padL-8),H-7);
+  etctx.textAlign="left";
+}
+
+function drawEdrSpec(){
+  const r=edrS.getBoundingClientRect(),W=r.width,H=r.height;
+  const padL=44,padT=14,padB=24;
+  paperBg(esctx,W,H,padL,0);
+  esctx.fillStyle=css("--paper-deep");esctx.fillRect(0,0,padL,H);
+  esctx.strokeStyle=css("--rule");esctx.lineWidth=1;
+  esctx.beginPath();esctx.moveTo(padL+.5,0);esctx.lineTo(padL+.5,H);esctx.stroke();
+
+  const binHz=EDR_FS/EDR_N, fMax=0.8, plotH=H-padT-padB, plotW=W-padL-8;
+  const xOf=f=>padL+(f/fMax)*plotW;
+
+  esctx.fillStyle="rgba(13,91,87,.08)";
+  esctx.fillRect(xOf(0.1),padT,xOf(0.6)-xOf(0.1),plotH);
+
+  if(EDR.beats.length<6){
+    esctx.fillStyle=css("--ink-faint");
+    esctx.font='600 11px "Barlow Condensed", sans-serif';
+    esctx.fillText("RESPIRATORY BAND SPECTRUM",padL+10,H/2);
+    return;
+  }
+  function plot(mag,color){
+    let mx=1e-9;
+    for(let i=1;i<EDR_N/2;i++){const f=i*binHz;if(f<=fMax&&mag[i]>mx)mx=mag[i];}
+    esctx.strokeStyle=css(color);esctx.lineWidth=1.5;esctx.beginPath();
+    let first=true;
+    for(let i=1;i<EDR_N/2;i++){
+      const f=i*binHz; if(f>fMax) break;
+      const x=xOf(f), y=padT+plotH-(mag[i]/mx)*plotH*0.92;
+      first?(esctx.moveTo(x,y),first=false):esctx.lineTo(x,y);
+    }
+    esctx.stroke();
+  }
+  plot(EDR.magAm,"--pen2");
+  plot(EDR.magRsa,"--cal");
+
+  [[EDR.fAm,"--pen2"],[EDR.fRsa,"--cal"]].forEach(m=>{
+    if(m[0]<=0) return;
+    esctx.strokeStyle=css(m[1]);esctx.setLineDash([3,3]);esctx.lineWidth=1;
+    esctx.beginPath();esctx.moveTo(xOf(m[0]),padT);esctx.lineTo(xOf(m[0]),padT+plotH);esctx.stroke();
+    esctx.setLineDash([]);
+  });
+
+  esctx.fillStyle=css("--ink-faint");
+  esctx.font='500 9.5px "IBM Plex Mono", monospace';
+  esctx.textAlign="center";
+  for(const f of [0,0.2,0.4,0.6,0.8]) esctx.fillText((f*60).toFixed(0),xOf(f),H-9);
+  esctx.fillText("breaths/min",padL+plotW/2,H-1);
+  esctx.textAlign="left";
+}
+
+function paintEdr(){
+  const orb=document.getElementById("bOrb");
+  orb.style.transform="scale("+(0.35+0.62*Math.max(0,Math.min(1,EDR.phase))).toFixed(3)+")";
+
+  statBlock("edrStats",[
+    ["AM rate",EDR.fAm>0?(EDR.fAm*60).toFixed(1):"—","/min"],
+    ["RSA rate",EDR.fRsa>0?(EDR.fRsa*60).toFixed(1):"—","/min"],
+    ["Agreement",EDR.agree>0?(EDR.agree*100).toFixed(0):"—","%"],
+    ["RSA swing",EDR.rsaMs>0?EDR.rsaMs.toFixed(1):"—","bpm"],
+    ["AM swing",EDR.amSwing>0?(EDR.amSwing*100).toFixed(1):"—","%"],
+    ["Beats",EDR.beats.length,""],
+    ["Confidence",EDR.conf>0?(EDR.conf*100).toFixed(0):"—","%"]
+  ]);
+
+  if(!EDR.ready){
+    document.getElementById("bPhase").textContent="Collecting";
+    document.getElementById("bHint").textContent=
+      EDR.beats.length+" beats so far · needs about 20 before an estimate appears";
+    const enough=EDR.beats.length>=20;
+    setEdr("No estimate","—", enough
+      ? "no respiratory modulation found — RSA swing "+EDR.rsaMs.toFixed(1)+
+        " bpm, amplitude swing "+(EDR.amSwing*100).toFixed(1)+"%"
+      : "let the ECG run for half a minute");
+    return;
+  }
+  document.getElementById("bPhase").textContent=EDR.phase>0.5?"Inhale":"Exhale";
+  document.getElementById("bHint").textContent=
+    "one cycle every "+(60/Math.max(1,EDR.rate)).toFixed(1)+" s";
+
+  let lbl;
+  if(EDR.agree<0.3&&EDR.method==="fuse") lbl="Methods disagree";
+  else if(EDR.conf<0.12) lbl="Weak estimate";
+  else if(EDR.rate<9) lbl="Slow breathing";
+  else if(EDR.rate>22) lbl="Fast breathing";
+  else lbl="Respiration rate";
+  setEdr(lbl,EDR.rate.toFixed(1)+" /min",
+    "AM "+(EDR.fAm*60).toFixed(1)+" · RSA "+(EDR.fRsa*60).toFixed(1)+
+    " · agreement "+(EDR.agree*100).toFixed(0)+"%");
+}
+function setEdr(l,b,sub){
+  document.getElementById("eLbl").textContent=l;
+  document.getElementById("eBig").textContent=b;
+  document.getElementById("eSub").textContent=sub||"";
+}
+
+/* ======================= UI builders ======================= */
+
+function buildChannelBar(){
+  const bar=document.getElementById("chanbar");
+  bar.innerHTML="";
+  CH.forEach(c=>{
+    const d=document.createElement("div");
+    d.className="chan";
+    d.innerHTML=
+      '<div class="hd"><span class="nib" style="background:var('+c.pen+')"></span>'+
+      '<span class="name">CH'+(c.i+1)+'</span><span class="pin">'+PINLBL[c.i]+'</span></div>'+
+      '<div class="meter"><span style="background:var('+c.pen+')"></span></div>'+
+      '<div class="rd"><span class="rms">—</span><span class="raw">—</span></div>'+
+      '<label class="sw compact"><input type="checkbox" checked><span class="lever"></span>'+
+      '<span class="txt" style="font-size:12px">Pen down</span></label>';
+    d.querySelector("input").addEventListener("change",e=>{
+      c.on=e.target.checked;
+      d.classList.toggle("off",!c.on);
+      if(MODEL.samples.length) resetClassifier();   // feature vector width changed
+    });
+    bar.appendChild(d);
+  });
+}
+function paintChannelBar(){
+  const bar=document.getElementById("chanbar");
+  CH.forEach(c=>{
+    const d=bar.children[c.i]; if(!d) return;
+    const uv=c.rms*uvPerCount()*1000;
+    d.querySelector(".rms").textContent=uv>=1000?(uv/1000).toFixed(2)+" mVrms":uv.toFixed(0)+" µVrms";
+    d.querySelector(".raw").textContent=Math.round(c.raw)+" cts";
+    d.querySelector(".meter span").style.width=Math.min(100,(c.rms/Math.max(1,c.scale))*100)+"%";
+  });
+}
+function buildSpecPicker(){
+  const s=document.getElementById("selSpecCh");
+  s.innerHTML="";
+  CH.forEach(c=>{const o=document.createElement("option");o.value=c.i;o.textContent="CH"+(c.i+1);s.appendChild(o);});
+  s.value=S.specCh;
+}
+function renderClassList(){
+  const el=document.getElementById("classList");
+  if(!el) return;
+  if(!MODEL.classes.length){el.innerHTML='<div class="empty">No classes recorded yet.</div>';return;}
+  el.innerHTML="";
+  MODEL.classes.forEach(name=>{
+    const n=MODEL.samples.filter(s=>s.label===name).length;
+    const row=document.createElement("div");
+    row.className="cls";
+    row.innerHTML='<span class="nm">'+name+'</span><span class="ct">'+n+' windows</span>';
+    const x=document.createElement("button");
+    x.className="x";x.textContent="×";x.title="Remove "+name;
+    x.addEventListener("click",()=>{
+      MODEL.classes=MODEL.classes.filter(c=>c!==name);
+      MODEL.samples=MODEL.samples.filter(s=>s.label!==name);
+      MODEL.ready=false;
+      if(MODEL.samples.length) fitNorm();
+      MODEL.detecting=MODEL.detecting&&MODEL.ready;
+      document.getElementById("btnDetect").disabled=!MODEL.ready;
+      renderClassList();renderBars([]);
+    });
+    row.appendChild(x);el.appendChild(row);
+  });
+}
+function renderBars(rows){
+  const el=document.getElementById("bars");
+  el.innerHTML=rows.map((r,i)=>
+    '<div class="bar'+(i===0?' top':'')+'"><span class="bn">'+r.name+
+    '</span><span class="bt"><span style="width:'+(r.val*100).toFixed(1)+
+    '%"></span></span><span class="bv">'+(r.val*100).toFixed(0)+'%</span></div>').join("");
+}
+function setVerdict(lbl,big,sub){
+  document.getElementById("vLbl").textContent=lbl;
+  document.getElementById("vBig").textContent=big;
+  document.getElementById("vSub").textContent=sub||"";
+}
+function statBlock(id,items){
+  document.getElementById(id).innerHTML=items.map(it=>
+    '<div class="stat"><span class="k">'+it[0]+'</span><span class="v">'+it[1]+
+    (it[2]?'<small> '+it[2]+'</small>':'')+'</span></div>').join("");
+}
+function logBlock(id,items){
+  document.getElementById(id).innerHTML=items.map(it=>
+    '<div class="ev"><span class="t">'+it.t.toFixed(1)+'s</span><span class="n">'+it.n+
+    '</span><span class="d">'+it.d+'</span></div>').join("");
+}
+
+/* ======================= detection panes ======================= */
+
+const SUBS={
+  emg:"k-nearest-neighbour over Hudgins features, trained in this tab",
+  ecg:"Pan-Tompkins beat detection with time-domain variability metrics",
+  eog:"Threshold and duration event classifier",
+  eeg:"Relative band power from the running FFT"
+};
+function showPane(){
+  ["Emg","Ecg","Eog","Eeg"].forEach(k=>
+    document.getElementById("pane"+k+"L").classList.toggle("on",k.toLowerCase()===S.mode));
+  document.getElementById("detectSub").textContent=SUBS[S.mode];
+  renderBars([]);
+  if(S.mode==="emg") setVerdict(MODEL.ready?"Ready":"Untrained","—",
+    MODEL.ready?"Press start detecting":"Record at least two classes to begin");
+  else setVerdict("Analysing","—","");
+}
+function paintDetection(){
+  if(S.mode==="ecg"){
+    const m=ecgMetrics();
+    if(!m){statBlock("ecgStats",[["Beats","—"]]);setVerdict("Analysing","—","waiting for beats");return;}
+    statBlock("ecgStats",[
+      ["Mean HR",m.bpm.toFixed(0),"bpm"],["SDNN",m.sdnn.toFixed(0),"ms"],
+      ["RMSSD",m.rmssd.toFixed(0),"ms"],["pNN50",m.pnn50.toFixed(0),"%"],["Intervals",m.n,""]]);
+    setVerdict(m.irregular?"Irregular rhythm":"Regular rhythm",m.bpm.toFixed(0)+" BPM",
+      "RR variation "+(m.sdnn/m.mean*100).toFixed(1)+"% over "+m.n+" intervals");
+    renderBars([
+      {name:"Short-term HRV",val:Math.min(1,m.rmssd/120)},
+      {name:"Overall HRV",val:Math.min(1,m.sdnn/150)}]);
+    logBlock("ecgLog",ECG.events.slice(0,14).map(e=>({t:e.t,n:"Beat",d:e.rr.toFixed(0)+" ms"})));
+  }
+  else if(S.mode==="eog"){
+    statBlock("eogStats",[["Blinks",EOG.counts.blink],["Left",EOG.counts.left],
+      ["Right",EOG.counts.right],["Events",EOG.events.length]]);
+    const last=EOG.events[0];
+    setVerdict(last?"Last event":"Watching",last?last.name.toUpperCase():"—",
+      last?last.dur.toFixed(0)+" ms · "+last.amp.toFixed(0)+" counts":"move your eyes or blink");
+    const tot=Math.max(1,EOG.counts.blink+EOG.counts.left+EOG.counts.right);
+    renderBars([
+      {name:"Blink",val:EOG.counts.blink/tot},
+      {name:"Look left",val:EOG.counts.left/tot},
+      {name:"Look right",val:EOG.counts.right/tot}]);
+    logBlock("eogLog",EOG.events.slice(0,14).map(e=>({t:e.t,n:e.name,d:e.dur.toFixed(0)+" ms"})));
+  }
+  else if(S.mode==="eeg"){
+    const r=eegBands(); if(!r) return;
+    statBlock("eegStats",r.bands.map(b=>[b.name,(b.rel*100).toFixed(0),"%"]));
+    const a=r.bands[2].rel,b=r.bands[3].rel;
+    setVerdict("Alpha share",(a*100).toFixed(0)+"%",
+      "alpha/beta ratio "+(b>0?(a/b).toFixed(2):"—")+" — expect this to rise when you close your eyes");
+    renderBars(r.bands.map(x=>({name:x.name,val:x.rel})).sort((p,q)=>q.val-p.val));
+  }
+}
+
+/* ======================= readouts ======================= */
+
+function uvPerCount(){return (3300/4096)/Math.max(1,S.gain);}   // mV per count at the input
+function fmtHz(v){return v<10?v.toFixed(1):Math.round(v);}
+function paintSummary(){
+  const p=PRESETS[S.mode];
+  document.getElementById("bandText").innerHTML=
+    p.label+" band · <span class='num'>"+fmtHz(S.hp)+"–"+fmtHz(S.lp)+" Hz</span>. "+p.hint;
+  const bits=[];
+  if(S.dc) bits.push("DC block");
+  bits.push(fmtHz(S.hp)+"–"+fmtHz(S.lp)+" Hz");
+  if(S.notch) bits.push(S.mains+" Hz notch");
+  if(S.harm) bits.push(S.mains*2+" Hz notch");
+  if(S.env) bits.push("envelope");
+  document.getElementById("chainSummary").textContent=bits.join(" → ");
+  document.getElementById("oHp").textContent=fmtHz(S.hp)+" Hz";
+  document.getElementById("oLp").textContent=fmtHz(S.lp)+" Hz";
+}
+function paintStrip(){
+  if(S.source==="ble"){
+    const tot=BLE.got+BLE.lost;
+    const loss=tot>0?BLE.lost/tot*100:0;
+    document.getElementById("mLink").innerHTML=
+      (loss<0.05?"0":loss.toFixed(loss<1?2:1))+"<small> % loss · "+(BLE.lastFpp||"—")+" fr/pkt</small>";
+  }
+  document.getElementById("mSweep").innerHTML=S.sweep+"<small> mm/s</small>";
+  document.getElementById("mRate").innerHTML=(rateShown?rateShown.toFixed(0):"—")+"<small> SPS</small>";
+  const c=CH[0];
+  if(c&&CHH){
+    const act=CH.filter(x=>x.on).length||1;
+    const span=(CHH/act)/2*0.92;
+    const perDiv=c.scale*uvPerCount()*1000/Math.max(1,span/(MM*5));
+    document.getElementById("mScale").innerHTML=
+      perDiv>=1000?(perDiv/1000).toFixed(2)+"<small> mV/div</small>":Math.round(perDiv)+"<small> µV/div</small>";
+  }
+  document.getElementById("bpmCell").style.display=S.mode==="ecg"?"flex":"none";
+  if(S.mode==="ecg"){
+    const m=ecgMetrics();
+    document.getElementById("mBpm").innerHTML=(m?m.bpm.toFixed(0):"—")+"<small> bpm</small>";
+  }
+  document.getElementById("clipFlag").classList.toggle("on",clipHold>0);
+}
+
+/* ======================= loop ======================= */
+
+let lastFrame=performance.now(), detTick=0;
+function frame(now){
+  requestAnimationFrame(frame);
+  if(S.running&&S.source==="demo"&&!S.frozen){
+    if(FAT.running&&S.mode==="emg") demo.fat=Math.min(1,FAT.activeSamples/FS/70);
+    let n=Math.round((now-lastFrame)/1000*FS);
+    if(n>FS/4) n=FS/4;
+    for(let i=0;i<n;i++) pushFrame(demoFrame());
+  }
+  // measure the real refresh rate; the flicker frequencies depend on it
+  if(frame.prev){
+    const dt=now-frame.prev;
+    if(dt>4&&dt<40) frame.ema=frame.ema?frame.ema*0.94+dt*0.06:dt;
+    if(frame.ema) SSV.refresh=1000/frame.ema;
+  }
+  frame.prev=now;
+  SSV.frame++;
+  if(S.mode==="eeg"){ renderFlicker(); ssvTestTick(); }
+
+  lastFrame=now;
+  if(now-rateT0>1000){rateShown=rateCount*1000/(now-rateT0);rateCount=0;rateT0=now;}
+  if(!S.frozen) drawChart();
+  drawSpectrum();
+  paintStrip();
+  paintChannelBar();
+  if(now-detTick>200){
+    detTick=now;
+    if(S.mode!=="emg") paintDetection();
+    else{ paintFatigue(); drawTrend(); drawJasa(); }
+    if(S.mode==="eeg"){ paintSsvep(); paintDrowse(); drawDzTrend(); drawDzBlink();
+                        paintFocus(); drawFcTrend(); }
+    if(S.mode==="ecg"){ paintEdr(); drawEdrTrace(); drawEdrSpec(); }
+    if(S.mode==="eog"){ paintGaze(); }
+  }
+}
+
+/* ======================= Web Serial ======================= */
+
+let port=null,keepReading=false,reader=null,chDetected=false;
+
+async function connect(){
+  if(!("serial" in navigator)){
+    showAlert("This browser has no Web Serial. Use Chrome or Edge on desktop, and open this file directly rather than inside another page. The demo signal works everywhere.");
+    return;
+  }
+  try{
+    port=await navigator.serial.requestPort();
+    await port.open({baudRate:S.baud});
+  }catch(e){
+    port=null;
+    if(e&&e.name==="NotFoundError") return;
+    showAlert("Could not open the port: "+e.message+" — close the Arduino Serial Monitor if it still has the board.");
+    return;
+  }
+  hideAlert();stopDemo();
+  if(bleConnected()) bleDisconnect();
+  chDetected=false;
+  S.running=true;S.source="serial";S.frozen=false;
+  setLamp("live","Streaming");
+  document.getElementById("chartNote").textContent="";
+  document.getElementById("btnConnect").textContent="Disconnect";
+  keepReading=true;readLoop();
+}
+async function readLoop(){
+  const dec=new TextDecoder();let buf="";
+  try{
+    while(keepReading&&port&&port.readable){
+      reader=port.readable.getReader();
+      try{
+        while(true){
+          const {value,done}=await reader.read();
+          if(done) break;
+          buf+=dec.decode(value,{stream:true});
+          let i;
+          while((i=buf.indexOf("\n"))>=0){
+            const line=buf.slice(0,i).trim();buf=buf.slice(i+1);
+            if(!line) continue;
+            const vals=line.split(",").map(parseFloat);
+            if(!vals.length||!vals.every(Number.isFinite)) continue;
+            if(!chDetected){
+              chDetected=true;
+              if(vals.length!==CH.length) setChannelCount(vals.length);
+            }
+            if(!S.frozen) pushFrame(vals);
+          }
+          if(buf.length>8192) buf="";
+        }
+      }finally{if(reader){reader.releaseLock();reader=null;}}
+    }
+  }catch(e){showAlert("Serial read stopped: "+e.message);}
+  await disconnect(true);
+}
+async function disconnect(silent){
+  keepReading=false;
+  try{if(reader) await reader.cancel();}catch(e){}
+  try{if(port) await port.close();}catch(e){}
+  port=null;S.running=false;S.source=null;
+  setLamp("","Idle");
+  document.getElementById("btnConnect").textContent="Connect USB";
+  if(!silent) document.getElementById("chartNote").textContent="Disconnected";
+}
+/* ======================= Web Bluetooth ======================= */
+/* Must match axon_ble_stream.ino. Packet: [seq u8][nch u8][frames: nch x u16 LE]. */
+const AXON_SVC ="a7e10001-5c3b-4f7a-9d2e-0a1b2c3d4e5f";
+const AXON_DATA="a7e10002-5c3b-4f7a-9d2e-0a1b2c3d4e5f";
+const BLE={dev:null,chr:null,seq:-1,got:0,lost:0,lastFpp:0,last:null,userClosed:false};
+const LINKGAP={at:-1};     // sample index where the most recent filled gap ended
+
+function bleConnected(){ return !!(BLE.dev&&BLE.dev.gatt&&BLE.dev.gatt.connected); }
+
+/* Turn one notification into frames. Returns null for anything malformed so a
+   corrupted packet is dropped rather than injecting garbage into the filters. */
+function bleParse(dv){
+  if(!dv||dv.byteLength<4) return null;
+  const seq=dv.getUint8(0), nch=dv.getUint8(1);
+  if(nch<1||nch>4) return null;
+  const n=Math.floor((dv.byteLength-2)/(2*nch));
+  if(n<1) return null;
+  const frames=new Array(n);
+  for(let f=0;f<n;f++){
+    const row=new Array(nch);
+    for(let k=0;k<nch;k++) row[k]=dv.getUint16(2+(f*nch+k)*2,true);
+    frames[f]=row;
+  }
+  return {seq,nch,frames};
+}
+
+/* A lost packet is a hole in the sample clock. Every timing measurement on
+   this page — RR intervals, breathing rate, blink duration — assumes 500 Hz is
+   500 Hz, so holes are filled by holding the last value for exactly as many
+   frames as went missing. Short gaps are filled; a long one means the link
+   dropped and the history is no longer continuous, so it is not papered over. */
+function bleIngest(pk){
+  if(BLE.seq>=0){
+    const gap=(pk.seq-BLE.seq-1+256)&255;
+    if(gap>0){
+      BLE.lost+=gap;
+      if(gap<=20 && BLE.last && !S.frozen){
+        const fill=gap*(BLE.lastFpp||pk.frames.length);
+        for(let i=0;i<fill;i++) pushFrame(BLE.last);
+        LINKGAP.at=sampleCount;
+      }
+    }
+  }
+  BLE.seq=pk.seq; BLE.got++; BLE.lastFpp=pk.frames.length;
+  if(!chDetected){
+    chDetected=true;
+    if(pk.nch!==CH.length) setChannelCount(pk.nch);
+  }
+  if(!S.frozen) for(const f of pk.frames) pushFrame(f);
+  BLE.last=pk.frames[pk.frames.length-1];
+}
+
+function bleOnValue(e){
+  const pk=bleParse(e.target.value);
+  if(pk) bleIngest(pk);
+}
+
+async function bleConnect(){
+  if(!navigator.bluetooth){
+    const ios=/iP(hone|ad|od)/.test(navigator.userAgent);
+    showAlert(!window.isSecureContext
+      ? "Bluetooth needs the page served over https. Open it from its web address (for example GitHub Pages), not as a local file."
+      : ios
+        ? "Safari on iPhone has no Web Bluetooth. Install the free Bluefy browser from the App Store and open this page in it."
+        : "This browser has no Web Bluetooth. On Android use Chrome; on desktop use Chrome or Edge.");
+    return;
+  }
+  let dev;
+  try{
+    dev=await navigator.bluetooth.requestDevice({filters:[{services:[AXON_SVC]}]});
+  }catch(e){
+    if(e&&e.name==="NotFoundError") return;           // picker dismissed
+    showAlert(e&&e.name==="SecurityError"
+      ? "Bluetooth is blocked in this context. Open the page directly in the browser rather than inside another app or frame."
+      : "Bluetooth scan failed: "+(e&&e.message||e));
+    return;
+  }
+  document.getElementById("btnBle").textContent="Connecting…";
+  try{
+    dev.addEventListener("gattserverdisconnected",bleOnDisconnect);
+    const srv=await dev.gatt.connect();
+    const svc=await srv.getPrimaryService(AXON_SVC);
+    const chr=await svc.getCharacteristic(AXON_DATA);
+    chr.addEventListener("characteristicvaluechanged",bleOnValue);
+    if(port) await disconnect(true);
+    stopDemo();
+    BLE.dev=dev;BLE.chr=chr;BLE.seq=-1;BLE.got=0;BLE.lost=0;BLE.last=null;BLE.userClosed=false;
+    chDetected=false;
+    await chr.startNotifications();
+  }catch(e){
+    try{dev.gatt.disconnect();}catch(_){}
+    BLE.dev=null;BLE.chr=null;
+    document.getElementById("btnBle").textContent="Connect Bluetooth";
+    showAlert("Could not connect: "+(e&&e.message||e)+". Make sure the board runs axon_ble_stream.ino and is not already connected to another phone.");
+    return;
+  }
+  hideAlert();
+  S.running=true;S.source="ble";S.frozen=false;
+  setLamp("live","Bluetooth");
+  document.getElementById("chartNote").textContent="";
+  document.getElementById("btnBle").textContent="Disconnect";
+  document.getElementById("linkCell").style.display="";
+}
+
+function bleOnDisconnect(){
+  const wasUser=BLE.userClosed;
+  if(BLE.chr) try{BLE.chr.removeEventListener("characteristicvaluechanged",bleOnValue);}catch(_){}
+  BLE.dev=null;BLE.chr=null;
+  if(S.source==="ble"){S.running=false;S.source=null;setLamp("","Idle");}
+  document.getElementById("btnBle").textContent="Connect Bluetooth";
+  document.getElementById("linkCell").style.display="none";
+  document.getElementById("chartNote").textContent=wasUser?"Disconnected":"Bluetooth link lost — check the board's power, then reconnect";
+}
+
+function bleDisconnect(){
+  BLE.userClosed=true;
+  try{ if(BLE.dev&&BLE.dev.gatt.connected) BLE.dev.gatt.disconnect(); else bleOnDisconnect(); }
+  catch(_){ bleOnDisconnect(); }
+}
+
+function showAlert(t){const a=document.getElementById("alert");a.textContent=t;a.classList.add("on");}
+function hideAlert(){document.getElementById("alert").classList.remove("on");}
+function setLamp(cls,txt){
+  document.getElementById("lamp").className="lamp"+(cls?" "+cls:"");
+  document.getElementById("lampText").textContent=txt;
+}
+function startDemo(){
+  if(port||bleConnected()) return;
+  setChannelCount(+document.getElementById("selDemoCh").value);
+  S.running=true;S.source="demo";S.frozen=false;
+  setLamp("demo","Demo signal");
+  document.getElementById("chartNote").textContent=
+    "Synthetic "+PRESETS[S.mode].label.toLowerCase()+" signal — mains hum, drift and per-channel variation";
+  document.getElementById("btnDemo").textContent="Stop demo";
+}
+function stopDemo(){
+  if(S.source==="demo"){S.running=false;S.source=null;setLamp("","Idle");}
+  document.getElementById("btnDemo").textContent="Run demo signal";
+}
+
+/* ======================= controls ======================= */
+
+const sHp=document.getElementById("sHp"),sLp=document.getElementById("sLp");
+const HP_MIN=.2,HP_MAX=120,LP_MIN=5,LP_MAX=240;
+const toHz=(v,mn,mx)=>mn*Math.pow(mx/mn,v/100);
+const fromHz=(h,mn,mx)=>100*Math.log(h/mn)/Math.log(mx/mn);
+
+function applyMode(m){
+  S.mode=m;
+  const p=PRESETS[m];
+  S.hp=p.hp;S.lp=p.lp;
+  sHp.value=fromHz(S.hp,HP_MIN,HP_MAX);
+  sLp.value=fromHz(S.lp,LP_MIN,LP_MAX);
+  document.querySelectorAll(".modes button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===m)));
+  const sw=(m==="emg")?"50":(m==="ecg"?"25":"12.5");
+  document.getElementById("selSweep").value=sw;S.sweep=parseFloat(sw);
+  dispN=0;
+  ECG.rr=[];ECG.events=[];ECG.last=-1e9;ECG.peak=0;ECG.sum=0;ECG.intBuf.fill(0);ECG.hist.fill(0);
+  EOG.events=[];EOG.counts={blink:0,left:0,right:0};EOG.inEv=false;EOG.base=20;
+  document.getElementById("fatigueCard").classList.toggle("hidden",m!=="emg");
+  document.getElementById("ssvepCard").classList.toggle("hidden",m!=="eeg");
+  document.getElementById("edrCard").classList.toggle("hidden",m!=="ecg");
+  document.getElementById("gazeCard").classList.toggle("hidden",m!=="eog");
+  document.getElementById("drowseCard").classList.toggle("hidden",m!=="eeg");
+  document.getElementById("focusCard").classList.toggle("hidden",m!=="eeg");
+  dzReset(); fcReset();
+  gzReset();
+  edrReset();
+  if(m!=="eeg") ssvStop();
+  resetFatigue();
+  rebuild();showPane();
+  if(S.source==="demo") document.getElementById("chartNote").textContent=
+    "Synthetic "+p.label.toLowerCase()+" signal — mains hum, drift and per-channel variation";
+}
+
+document.querySelectorAll(".modes button").forEach(b=>b.addEventListener("click",()=>applyMode(b.dataset.mode)));
+sHp.addEventListener("input",()=>{S.hp=toHz(+sHp.value,HP_MIN,HP_MAX);if(S.hp>S.lp*.9)S.hp=S.lp*.9;rebuild();});
+sLp.addEventListener("input",()=>{S.lp=toHz(+sLp.value,LP_MIN,LP_MAX);if(S.lp<S.hp*1.1)S.lp=S.hp*1.1;rebuild();});
+document.getElementById("tNotch").addEventListener("change",e=>{S.notch=e.target.checked;rebuild();});
+document.getElementById("tHarm").addEventListener("change",e=>{S.harm=e.target.checked;rebuild();});
+document.getElementById("tDc").addEventListener("change",e=>{S.dc=e.target.checked;rebuild();});
+document.getElementById("tEnv").addEventListener("change",e=>{
+  S.env=e.target.checked;
+  for(const c of CH){c.envSum=0;c.envBuf.fill(0);}
+  paintSummary();
+});
+document.getElementById("tAuto").addEventListener("change",e=>{
+  S.auto=e.target.checked;document.getElementById("numScale").disabled=S.auto;
+});
+document.getElementById("selMains").addEventListener("change",e=>{S.mains=+e.target.value;rebuild();});
+document.getElementById("selSweep").addEventListener("change",e=>{S.sweep=parseFloat(e.target.value);});
+document.getElementById("selBaud").addEventListener("change",e=>{S.baud=+e.target.value;});
+document.getElementById("selDemoCh").addEventListener("change",e=>{
+  if(S.source==="demo") setChannelCount(+e.target.value);
+});
+document.getElementById("selSpecCh").addEventListener("change",e=>{S.specCh=+e.target.value;});
+document.getElementById("numGain").addEventListener("input",e=>{S.gain=Math.max(1,+e.target.value||1);});
+document.getElementById("numScale").addEventListener("input",e=>{S.fixedScale=Math.max(1,+e.target.value||1);});
+
+document.getElementById("btnConnect").addEventListener("click",()=>{port?disconnect():connect();});
+document.getElementById("btnBle").addEventListener("click",()=>{bleConnected()?bleDisconnect():bleConnect();});
+document.getElementById("btnDemo").addEventListener("click",()=>{S.source==="demo"?stopDemo():startDemo();});
+document.getElementById("btnCal").addEventListener("click",()=>{
+  calAmp=1/uvPerCount();                    // 1 mV at the input, expressed in counts
+  calRemain=Math.round(.2*FS);
+});
+document.getElementById("btnFreeze").addEventListener("click",e=>{
+  S.frozen=!S.frozen;e.target.textContent=S.frozen?"Resume":"Freeze";
+});
+document.getElementById("btnSave").addEventListener("click",e=>{
+  if(!logging){logRows.length=0;logging=true;e.target.textContent="Stop and save";return;}
+  logging=false;e.target.textContent="Save CSV";
+  const hdr=[];
+  for(const c of CH) hdr.push("ch"+(c.i+1)+"_raw");
+  for(const c of CH) hdr.push("ch"+(c.i+1)+"_filtered");
+  const head="# EXG Pill "+S.mode.toUpperCase()+"  fs="+FS+"Hz  channels="+CH.length+
+             "  band="+fmtHz(S.hp)+"-"+fmtHz(S.lp)+"Hz  notch="+(S.notch?S.mains:"off")+
+             "  gain="+S.gain+"\n"+hdr.join(",")+"\n";
+  const blob=new Blob([head+logRows.join("\n")],{type:"text/csv"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="exg-"+S.mode+"-"+CH.length+"ch-"+Date.now()+".csv";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+});
+
+document.getElementById("btnRecord").addEventListener("click",()=>{
+  const nm=document.getElementById("clsName").value.trim().slice(0,14);
+  if(!nm) return;
+  if(!S.running){showAlert("Start the demo or connect the board before recording a gesture.");return;}
+  hideAlert();
+  if(!MODEL.classes.includes(nm)) MODEL.classes.push(nm);
+  recTarget=nm;recUntil=performance.now()+3000;
+  MODEL.detecting=false;
+  document.getElementById("btnDetect").textContent="Start detecting";
+  document.getElementById("btnRecord").disabled=true;
+  document.getElementById("recState").textContent="Recording "+nm+" — hold the posture";
+  setVerdict("Recording",nm.toUpperCase(),"hold steady for three seconds");
+});
+document.getElementById("btnDetect").addEventListener("click",e=>{
+  MODEL.detecting=!MODEL.detecting;
+  e.target.textContent=MODEL.detecting?"Stop detecting":"Start detecting";
+  if(!MODEL.detecting) setVerdict("Paused","—","");
+});
+document.getElementById("btnClearModel").addEventListener("click",resetClassifier);
+
+/* ---- fatigue controls ---- */
+function buildFatPicker(){
+  const s=document.getElementById("selFatCh");
+  s.innerHTML="";
+  CH.forEach(c=>{const o=document.createElement("option");o.value=c.i;o.textContent="CH"+(c.i+1);s.appendChild(o);});
+  s.value=FAT.ch;
+}
+const GATE_MIN=6,GATE_MAX=600;
+function syncGateSlider(){
+  document.getElementById("sGate").value=
+    100*Math.log(Math.max(GATE_MIN,Math.min(GATE_MAX,FAT.gate))/GATE_MIN)/Math.log(GATE_MAX/GATE_MIN);
+}
+document.getElementById("sGate").addEventListener("input",e=>{
+  FAT.gate=GATE_MIN*Math.pow(GATE_MAX/GATE_MIN,+e.target.value/100);
+});
+document.getElementById("selFatCh").addEventListener("change",e=>{FAT.ch=+e.target.value;resetFatigue();});
+document.getElementById("selFatBand").addEventListener("change",e=>{
+  const [lo,hi]=e.target.value.split(",").map(Number);
+  FAT.lo=lo;FAT.hi=hi;rebuild();resetFatigue();
+});
+document.getElementById("btnFatCal").addEventListener("click",()=>{
+  if(!S.running){showAlert("Start the demo or connect the board first.");return;}
+  FAT.calibrating=true;FAT.calAcc=0;FAT.calN=0;
+  setFatArmed("hot","Measuring rest level — stay relaxed");
+});
+document.getElementById("btnFatStart").addEventListener("click",e=>{
+  if(!FAT.running){
+    if(!S.running){showAlert("Start the demo or connect the board first.");return;}
+    hideAlert();
+    FAT.epochs=[];FAT.activeSamples=0;FAT.mdf0=null;FAT.rms0=null;demo.fat=0;
+    FAT.running=true;e.target.textContent="Stop test";
+    setFatArmed("hot","Waiting for contraction");
+  }else{
+    FAT.running=false;e.target.textContent="Start test";
+    setFatArmed("","Stopped");
+  }
+});
+document.getElementById("btnFatReset").addEventListener("click",resetFatigue);
+
+/* ---- ssvep controls ---- */
+function ssvStop(){
+  SSV.running=false;SSV.test=false;SSV.cue=-1;SSV.best=-1;
+  const a=document.getElementById("btnSsvStart"),b=document.getElementById("btnSsvTest");
+  if(a) a.textContent="Start stimulus";
+  if(b) b.textContent="Accuracy test";
+  renderFlicker();
+}
+document.getElementById("ssvAck").addEventListener("change",e=>{
+  SSV.acked=e.target.checked;
+  document.getElementById("btnSsvStart").disabled=!SSV.acked;
+  document.getElementById("btnSsvTest").disabled=!SSV.acked;
+  if(!SSV.acked) ssvStop();
+});
+document.getElementById("btnSsvStart").addEventListener("click",e=>{
+  if(!SSV.acked) return;
+  if(SSV.running){ ssvStop(); return; }
+  if(!S.running){showAlert("Start the demo or connect the board first.");return;}
+  hideAlert();
+  SSV.running=true;SSV.frame=0;
+  e.target.textContent="Stop stimulus";
+});
+document.getElementById("btnSsvTest").addEventListener("click",e=>{
+  if(!SSV.acked) return;
+  if(SSV.test){
+    SSV.test=false;SSV.cue=-1;e.target.textContent="Accuracy test";return;
+  }
+  if(!S.running){showAlert("Start the demo or connect the board first.");return;}
+  hideAlert();
+  SSV.running=true;SSV.frame=0;
+  const seq=[];
+  for(let r=0;r<5;r++) for(let i=0;i<SSV.freqs.length;i++) seq.push(i);
+  for(let i=seq.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[seq[i],seq[j]]=[seq[j],seq[i]];}
+  SSV.testSeq=seq;SSV.testIdx=0;SSV.testHits=0;SSV.testDone=0;
+  SSV.cue=seq[0];SSV.testT0=performance.now();SSV.test=true;
+  SSV.testSecs=SSV.win+1;
+  document.getElementById("btnSsvStart").textContent="Stop stimulus";
+  e.target.textContent="Stop test";
+});
+document.getElementById("fcDeep").addEventListener("change",e=>{FC.deepGap=+e.target.value;});
+document.getElementById("fcSim").addEventListener("change",e=>{FC.sim=+e.target.value;});
+document.getElementById("btnFcStart").addEventListener("click",e=>{
+  if(FC.running){
+    FC.running=false;e.target.textContent="Start session";
+    setFocus("Session ended",fmtClock(FC.deepS),
+      "longest streak "+fmtClock(FC.bestRun)+" over "+FC.runs+" streaks",false);
+    return;
+  }
+  if(!S.running){showAlert("Start the demo or connect the board first.");return;}
+  hideAlert();
+  fcReset();
+  FC.running=true;FC.t0=sampleCount/FS;FC.lastTick=FC.t0;FC.lastBlink=FC.t0;
+  e.target.textContent="End session";
+});
+document.getElementById("btnFcReset").addEventListener("click",fcReset);
+document.getElementById("dzThr").addEventListener("input",e=>{DZ.thr=+e.target.value;});
+document.getElementById("dzWin").addEventListener("change",e=>{DZ.win=+e.target.value;});
+document.getElementById("dzSim").addEventListener("change",e=>{DZ.sim=+e.target.value;});
+document.getElementById("btnDzCal").addEventListener("click",()=>{
+  if(!S.running){showAlert("Start the demo or connect the board first.");return;}
+  hideAlert();DZ.baseArmed=true;DZ.base=null;
+  setDrowse("Measuring baseline","—","blink normally for about a minute",0,false);
+});
+document.getElementById("btnDzAlarm").addEventListener("click",e=>{
+  DZ.alarm=!DZ.alarm;
+  e.target.textContent="Alarm: "+(DZ.alarm?"on":"off");
+  if(DZ.alarm) dzBeep();
+});
+document.getElementById("btnDzReset").addEventListener("click",dzReset);
+document.getElementById("btnGzCal").addEventListener("click",()=>{
+  if(!S.running){showAlert("Start the demo or connect the board first.");return;}
+  hideAlert();gazeStartCal();
+});
+document.getElementById("btnGzRun").addEventListener("click",e=>{
+  if(!GZ.ready) return;
+  GZ.running=!GZ.running;
+  e.target.textContent=GZ.running?"Stop menu":"Start menu";
+  if(GZ.running){GZ.picked=-1;GZ.hold=0;GZ.trail=[];}
+});
+document.getElementById("btnGzReset").addEventListener("click",gzReset);
+document.getElementById("gzDwell").addEventListener("change",e=>{GZ.dwell=+e.target.value;});
+document.getElementById("gzAxes").addEventListener("change",e=>{GZ.axes=+e.target.value;renderMenu();});
+document.getElementById("gzSens").addEventListener("input",e=>{GZ.sens=+e.target.value;});
+document.getElementById("edrMethod").addEventListener("change",e=>{EDR.method=e.target.value;});
+document.getElementById("edrSim").addEventListener("change",e=>{EDR.sim=+e.target.value;});
+document.getElementById("btnEdrReset").addEventListener("click",edrReset);
+document.getElementById("ssvWin").addEventListener("change",e=>{SSV.win=+e.target.value;});
+document.getElementById("ssvHarm").addEventListener("change",e=>{SSV.harm=+e.target.value;});
+document.getElementById("ssvContrast").addEventListener("input",e=>{SSV.contrast=+e.target.value/100;});
+document.getElementById("ssvSim").addEventListener("change",e=>{SSV.simGaze=+e.target.value;});
+document.getElementById("ssvFreqs").addEventListener("change",e=>{
+  const f=e.target.value.split(",").map(x=>parseFloat(x.trim()))
+           .filter(x=>Number.isFinite(x)&&x>=4&&x<=SSV.refresh/3);
+  if(f.length>=2){
+    SSV.freqs=f.slice(0,6);SSV.rhos=[];SSV.best=-1;buildTargets();
+    const bad=[],alpha=[];
+    for(let i=0;i<SSV.freqs.length;i++){
+      if(SSV.freqs[i]>=8&&SSV.freqs[i]<=13) alpha.push(SSV.freqs[i].toFixed(1));
+      for(let j=0;j<SSV.freqs.length;j++){
+        if(i===j) continue;
+        for(let h=2;h<=SSV.harm;h++)
+          if(Math.abs(SSV.freqs[i]*h-SSV.freqs[j])<0.4)
+            bad.push(SSV.freqs[i].toFixed(1)+"x"+h+"="+SSV.freqs[j].toFixed(1));
+      }
+    }
+    let msg="";
+    if(bad.length) msg+="Harmonic clash: "+bad.join(", ")+
+      ". One target's harmonic lands on another, so their reference templates overlap and the decoder will confuse them. ";
+    if(alpha.length) msg+="In the alpha band: "+alpha.join(", ")+
+      " Hz. Alpha rises whenever you relax or close your eyes and will trigger false detections on those targets.";
+    if(msg) showAlert(msg); else hideAlert();
+  }
+  else{showAlert("Give at least two frequencies between 4 Hz and a third of the refresh rate.");}
+  e.target.value=SSV.freqs.map(x=>x.toFixed(2)).join(", ");
+});
+
+window.addEventListener("resize",sizeCanvases);
+
+/* ======================= boot ======================= */
+
+if(!("serial" in navigator)){
+  // phones and Safari have no Web Serial; Bluetooth is the way in there
+  document.getElementById("btnConnect").style.display="none";
+}
+sizeCanvases();
+buildTargets();
+renderMenu();
+syncGateSlider();
+setChannelCount(2);
+applyMode("emg");
+document.getElementById("numScale").disabled=true;
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
