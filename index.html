@@ -102,6 +102,11 @@ button{font:inherit;cursor:pointer}
   font-size:12px;font-weight:600;color:var(--ink-faint)}
 .gbest b{font-family:"IBM Plex Mono",monospace;font-size:16px;color:var(--ink);letter-spacing:0;margin-left:4px}
 
+/* ---------- neurofeedback ---------- */
+.nf.hidden{display:none}
+#nfCv{display:block;width:100%;height:240px;background:var(--card);border-bottom:1px solid var(--rule)}
+.nfbody{padding:14px}
+
 /* ---------- history ---------- */
 .hbody{padding:14px}
 .hnow{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-soft);min-height:16px}
@@ -942,6 +947,29 @@ footer.notes{font-size:12px}
   </div>
 </section>
 
+<!-- ============ NEUROFEEDBACK ============ -->
+<section class="card nf hidden" id="nfCard">
+  <h2>Neurofeedback <span>the rain grows quiet as you relax</span></h2>
+  <canvas id="nfCv" aria-label="Calm level"></canvas>
+  <div class="nfbody">
+    <p class="howto">Alpha waves (8–13 Hz) grow when the brain idles calmly, most of all with the eyes closed. Here they drive a sound: as alpha rises, the rain softens and darkens, and a bell rings for every 5 seconds you hold it. Learning to quiet the rain is the training. The first 30 seconds measure your own baseline, so sit as you will during the session.</p>
+    <p class="howto" style="margin-top:-6px">Alpha is strongest at the back of the head: IN+ on the back of the skull (part the hair, use gel), IN− behind the ear, REF on the other ear. The forehead also works, but it picks up less. Blinks and a clenched jaw are skipped automatically. On iPhone, the silent switch mutes the sound. This is relaxation practice, not treatment.</p>
+    <div class="rowset" style="margin-top:0">
+      <div class="field"><label for="nfLevel">Difficulty</label>
+        <select id="nfLevel"><option value="0">Easy</option><option value="1" selected>Normal</option><option value="2">Hard</option></select></div>
+      <div class="field"><label for="nfSound">Sound</label>
+        <select id="nfSound"><option value="rain" selected>Rain and bell</option><option value="bell">Bell only</option><option value="off">Silent</option></select></div>
+    </div>
+    <div class="actions" style="padding:14px 0 0;margin-top:8px">
+      <button class="btn sm" id="btnNf">Start session</button>
+    </div>
+    <div class="sessrow">
+      <div class="sess"><span class="k">In the zone</span><span class="v" id="nfZone">0:00</span></div>
+      <div class="sess"><span class="k">Longest hold</span><span class="v" id="nfBest">0:00</span></div>
+    </div>
+  </div>
+</section>
+
 <!-- ============ SSVEP ============ -->
 <section class="card ssvep hidden" id="ssvepCard">
   <h2>SSVEP <span>canonical correlation against harmonic references</span></h2>
@@ -1471,7 +1499,7 @@ function pushFrame(vals){
   if(p){
     if(S.mode==="ecg") ecgStep(p.last);
     else if(S.mode==="eog"){ eogStep(p.last); gazeStep(); }
-    else if(S.mode==="eeg") dzStep(p.last);
+    else if(S.mode==="eeg"){ dzStep(p.last); if(NF.running) nfStep(p.last); }
   }
 
   if(logging){
@@ -3104,7 +3132,7 @@ function css(v){return getComputedStyle(document.documentElement).getPropertyVal
 
 function sizeCanvases(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
-  for(const c of [chart,spec,fTrend,fJasa,edrT,edrS,gzPad,dzT,dzB,fcT,gameCv,histCv]){
+  for(const c of [chart,spec,fTrend,fJasa,edrT,edrS,gzPad,dzT,dzB,fcT,gameCv,histCv,nfCv]){
     const r=c.getBoundingClientRect();
     c.width=Math.max(1,Math.round(r.width*dpr));
     c.height=Math.max(1,Math.round(r.height*dpr));
@@ -4119,11 +4147,13 @@ function frame(now){
                         paintFocus(); drawFcTrend(); }
     if(S.mode==="ecg"){ paintEdr(); drawEdrTrace(); drawEdrSpec(); }
     if(S.mode==="eog"){ paintGaze(); }
+    if(S.mode==="eeg") nfTick();
     paintHero();
     paintQc();
     sessTick();
   }
   if(S.mode==="emg") gameTick(now);
+  if(S.mode==="eeg") nfDraw();
 }
 
 /* ======================= Web Serial ======================= */
@@ -4354,7 +4384,9 @@ function applyMode(m){
   EOG.events=[];EOG.counts={blink:0,left:0,right:0};EOG.inEv=false;EOG.base=20;
   document.getElementById("fatigueCard").classList.toggle("hidden",m!=="emg");
   document.getElementById("gameCard").classList.toggle("hidden",m!=="emg");
+  document.getElementById("nfCard").classList.toggle("hidden",m!=="eeg");
   gameAbort();
+  if(m!=="eeg") nfStop();
   document.getElementById("ssvepCard").classList.toggle("hidden",m!=="eeg");
   document.getElementById("edrCard").classList.toggle("hidden",m!=="ecg");
   document.getElementById("gazeCard").classList.toggle("hidden",m!=="eog");
@@ -4763,6 +4795,187 @@ gameCv.addEventListener("click",()=>{
 document.getElementById("btnGamePlay").addEventListener("click",gamePlay);
 document.getElementById("btnGameCal").addEventListener("click",()=>{GAME.after=null;gameStartCal();});
 
+/* ======================= neurofeedback ======================= */
+/* Relative alpha: power in 8-13 Hz over power in 2-30 Hz, each a one-second
+   running average of the squared band-passed signal. Relative, so electrode
+   contact and amplifier gain cancel out. Blinks and jaw clenches are huge
+   broadband bursts, so when the fast broadband envelope jumps to 8x its slow
+   average, the next 0.6 s are left out of both averages rather than allowed
+   to crash the ratio.
+   The first 30 s are the baseline. The zone threshold is a percentile of it
+   (55th, 70th, 85th by difficulty), so it starts out reachable for anyone
+   and gets harder only by your own standard. The sound maps calm
+   continuously: the rain gets quieter and darker as alpha rises, so there is
+   always a direction to move in, not just a pass-or-fail line. */
+const NF_BASE_S=30, NF_HOLD_S=5;
+const NF={running:false,phase:"idle",level:1,sound:"rain",
+  hpA1:new Biquad(),hpA2:new Biquad(),lpA1:new Biquad(),lpA2:new Biquad(),hpB:new Biquad(),lpB:new Biquad(),
+  aP:0,bP:0,bFast:0,bSlow:0,art:0,n:0,val:0,base:[],lo:0,thr:0,hi:1,calm:0,calmDisp:0,inZone:false,
+  series:[],elapsed:0,totalS:0,zoneS:0,streak:0,best:0,chimeAt:0,lastT:0};
+const nfCv=document.getElementById("nfCv"), nfx=nfCv.getContext("2d");
+function nfDesign(){
+  designHP(NF.hpA1,8,FS,BW_Q1);designHP(NF.hpA2,8,FS,BW_Q2);
+  designLP(NF.lpA1,13,FS,BW_Q1);designLP(NF.lpA2,13,FS,BW_Q2);
+  designHP(NF.hpB,2,FS,Math.SQRT1_2);designLP(NF.lpB,30,FS,Math.SQRT1_2);
+  for(const f of [NF.hpA1,NF.hpA2,NF.lpA1,NF.lpA2,NF.hpB,NF.lpB]){f.z1=0;f.z2=0;}
+}
+function nfStep(y){
+  const a=NF.lpA2.process(NF.lpA1.process(NF.hpA2.process(NF.hpA1.process(y))));
+  const b=NF.lpB.process(NF.hpB.process(y)), b2=b*b;
+  NF.n++;
+  NF.bFast+=(b2-NF.bFast)*0.02;            // ~0.1 s
+  NF.bSlow+=(b2-NF.bSlow)*0.0004;          // ~5 s
+  if(NF.n>FS*3&&NF.bSlow>0&&NF.bFast>8*NF.bSlow) NF.art=Math.round(0.6*FS);
+  if(NF.art>0){NF.art--;return;}
+  NF.aP+=(a*a-NF.aP)*0.002;                // ~1 s
+  NF.bP+=(b2-NF.bP)*0.002;
+  if(NF.n%125===0&&NF.n>FS*2){
+    NF.val=NF.aP/Math.max(1e-12,NF.bP);
+    NF.series.push(NF.val); if(NF.series.length>480) NF.series.shift();   // 2 min at 4 Hz
+    if(NF.phase==="base"&&NF.n>FS*4) NF.base.push(NF.val);
+    if(NF.phase==="train") NF.calm=Math.max(0,Math.min(1,(NF.val-NF.lo)/Math.max(1e-9,NF.hi-NF.lo)));
+  }
+}
+function nfStart(){
+  if(!S.running){showAlert("Run the demo or connect the board first.");return;}
+  hideAlert();
+  nfDesign();
+  Object.assign(NF,{running:true,phase:"base",aP:0,bP:0,bFast:0,bSlow:0,art:0,n:0,val:0,base:[],calm:0,calmDisp:0,
+    inZone:false,series:[],elapsed:0,totalS:0,zoneS:0,streak:0,best:0,chimeAt:0,lastT:performance.now(),
+    level:+document.getElementById("nfLevel").value,sound:document.getElementById("nfSound").value});
+  if(NF.sound!=="off") nfAudioStart();          // must start inside the tap, or iOS keeps it silent
+  nfAudioSet(NF.sound==="rain"?0.22:0,2);
+  document.getElementById("btnNf").textContent="Stop session";
+  nfPaintStats();
+}
+function nfStop(){
+  if(!NF.running) return;
+  if(NF.phase==="train"&&NF.totalS>=20){
+    sessNote("Time in the zone","min",NF.zoneS/60);
+    sessNote("Longest hold","s",NF.best);
+  }
+  NF.running=false;NF.phase="idle";
+  nfAudioStop();
+  document.getElementById("btnNf").textContent="Start session";
+}
+function nfTick(){
+  const now=performance.now(), dt=Math.min(1,(now-NF.lastT)/1000); NF.lastT=now;
+  if(!NF.running) return;
+  const paused=!S.running||qcBad(CH[0]);
+  if(paused){ nfAudioSet(0,0.5); return; }
+  NF.elapsed+=dt;
+  if(NF.phase==="base"){
+    if(NF.elapsed>=NF_BASE_S){
+      if(NF.base.length<40){ NF.elapsed=NF_BASE_S-10; return; }   // too many artifacts, give it longer
+      NF.lo=pctile(NF.base,0.15);
+      NF.thr=pctile(NF.base,[0.55,0.7,0.85][NF.level]);
+      NF.hi=Math.max(NF.thr*1.05,pctile(NF.base,0.97)*1.15);
+      NF.phase="train";
+    }
+    return;
+  }
+  NF.totalS+=dt;
+  NF.inZone=NF.art===0&&NF.val>NF.thr;
+  if(NF.inZone){
+    NF.zoneS+=dt;NF.streak+=dt;
+    if(NF.streak>NF.best) NF.best=NF.streak;
+    if(NF.streak-NF.chimeAt>=NF_HOLD_S){NF.chimeAt=NF.streak;if(NF.sound!=="off") nfChime();}
+  }else{NF.streak=0;NF.chimeAt=0;}
+  // calm -> quiet and dark; never fully silent, so the room doesn't jump in
+  nfAudioSet(NF.sound==="rain"?0.03+0.42*Math.pow(1-NF.calm,1.4):0,0.8);
+  nfPaintStats();
+}
+function nfPaintStats(){
+  document.getElementById("nfZone").textContent=fmtClock(NF.zoneS);
+  document.getElementById("nfBest").textContent=fmtClock(NF.best);
+}
+
+let NFA=null;
+function nfAudioStart(){
+  nfAudioStop();
+  const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+  try{
+    const ctx=new AC(); if(ctx.resume) ctx.resume();
+    const len=ctx.sampleRate*3, buf=ctx.createBuffer(1,len,ctx.sampleRate), d=buf.getChannelData(0);
+    // white noise with a slow random "patter" in its loudness reads as rain
+    let env=0.6;
+    for(let i=0;i<len;i++){ if(i%400===0) env=0.45+Math.random()*0.55; d[i]=(Math.random()*2-1)*env; }
+    const src=ctx.createBufferSource(); src.buffer=buf; src.loop=true;
+    const hp=ctx.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=350;
+    const lp=ctx.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=3000; lp.Q.value=0.4;
+    const g=ctx.createGain(); g.gain.value=0;
+    src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(ctx.destination); src.start();
+    NFA={ctx,g,lp,src};
+  }catch(e){NFA=null;}
+}
+function nfAudioSet(level,tau){
+  if(!NFA) return;
+  const t=NFA.ctx.currentTime;
+  NFA.g.gain.setTargetAtTime(level,t,tau||0.6);
+  NFA.lp.frequency.setTargetAtTime(900+5000*Math.min(1,level/0.45),t,tau||0.6);
+}
+function nfChime(){
+  if(!NFA) return;
+  const c=NFA.ctx,t=c.currentTime;
+  for(const [f,a] of [[528,0.16],[792,0.07],[1056,0.03]]){
+    const o=c.createOscillator(),g=c.createGain();
+    o.type="sine";o.frequency.value=f;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+2.4);
+    o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+2.5);
+  }
+}
+function nfAudioStop(){ if(NFA){ try{NFA.src.stop();NFA.ctx.close();}catch(e){} NFA=null; } }
+
+function nfDraw(){
+  const W=nfCv.clientWidth,H=nfCv.clientHeight; if(!W||!H) return;
+  const g=nfx, ink=RGB.ink, cal=RGB.cal;
+  g.fillStyle="rgb("+RGB.card+")";g.fillRect(0,0,W,H);
+  const cx=W/2, cy=92;
+  NF.calmDisp+=((NF.running&&NF.phase==="train"?NF.calm:0)-NF.calmDisp)*0.06;
+  const k=NF.calmDisp, r=34+44*k;
+
+  // the orb swells and fills as calm rises; a halo marks the zone
+  if(NF.running&&NF.inZone){
+    g.beginPath();g.arc(cx,cy,r+10+3*Math.sin(performance.now()/400),0,Math.PI*2);
+    g.strokeStyle="rgba("+cal+",.35)";g.lineWidth=6;g.stroke();
+  }
+  g.beginPath();g.arc(cx,cy,r,0,Math.PI*2);
+  g.fillStyle="rgba("+cal+","+(0.12+0.55*k).toFixed(3)+")";g.fill();
+  g.strokeStyle="rgb("+cal+")";g.lineWidth=1.5;g.stroke();
+
+  g.textAlign="center";g.fillStyle="rgb("+ink+")";
+  if(!NF.running){
+    g.font='600 20px "Barlow Condensed", sans-serif';g.fillText("READY",cx,cy+7);
+  }else if(NF.phase==="base"){
+    const p=Math.min(1,NF.elapsed/NF_BASE_S);
+    g.beginPath();g.arc(cx,cy,r+6,-Math.PI/2,-Math.PI/2+p*Math.PI*2);
+    g.strokeStyle="rgb("+RGB.warn+")";g.lineWidth=3;g.stroke();
+    g.font='600 20px "Barlow Condensed", sans-serif';g.fillText("BASELINE",cx,cy+2);
+    g.font='12px "IBM Plex Mono", monospace';g.fillStyle="rgba("+ink+",.7)";
+    g.fillText(Math.max(0,NF_BASE_S-NF.elapsed).toFixed(0)+" s",cx,cy+20);
+  }else{
+    g.font='600 34px "Barlow Condensed", sans-serif';g.fillText(Math.round(NF.calm*100)+"%",cx,cy+11);
+  }
+
+  // last two minutes of relative alpha, with the zone line
+  const top=186,bot=H-10,s=NF.series;
+  g.strokeStyle="rgba("+ink+",.12)";g.lineWidth=1;g.beginPath();g.moveTo(10,bot+.5);g.lineTo(W-10,bot+.5);g.stroke();
+  g.textAlign="left";g.font='10px "IBM Plex Mono", monospace';g.fillStyle="rgba("+ink+",.5)";
+  g.fillText("alpha share · 2 min",10,top-6);
+  if(s.length>1){
+    let mx=NF.phase==="train"?NF.hi:0; for(const v of s) if(v>mx) mx=v; mx=Math.max(mx,1e-6)*1.05;
+    const xOf=i=>10+(W-20)*(i+480-s.length)/479, yOf=v=>bot-(v/mx)*(bot-top);
+    if(NF.phase==="train"){
+      g.setLineDash([4,4]);g.strokeStyle="rgb("+RGB.warn+")";g.beginPath();
+      g.moveTo(10,yOf(NF.thr));g.lineTo(W-10,yOf(NF.thr));g.stroke();g.setLineDash([]);
+    }
+    g.strokeStyle="rgb("+cal+")";g.lineWidth=1.5;g.beginPath();
+    s.forEach((v,i)=>{const x=xOf(i),y=yOf(v);i?g.lineTo(x,y):g.moveTo(x,y);});
+    g.stroke();
+  }
+}
+document.getElementById("btnNf").addEventListener("click",()=>{ NF.running?nfStop():nfStart(); });
+
 /* ======================= session history ======================= */
 /* Every stretch of signal on one tab is a session. Every two seconds it logs
    the same number the big reading shows, plus a couple of supporting metrics
@@ -4848,7 +5061,7 @@ function serStats(name,ser){
   let a=0,mn=Infinity,mx=-Infinity;for(const x of v){a+=x;if(x<mn)mn=x;if(x>mx)mx=x;}
   return {avg:a/v.length,min:mn,max:mx,last:v[v.length-1]};
 }
-const PRIMARY={emg:["Muscle activity"],ecg:["Heart rate"],eog:[],eeg:["Alertness","Alpha share","Deep focus"]};
+const PRIMARY={emg:["Muscle activity"],ecg:["Heart rate"],eog:[],eeg:["Calm","Alertness","Alpha share","Deep focus"]};
 function primary(s){
   const dur=(s.t1-s.t0)/60000;
   if(s.mode==="eog"){
@@ -5066,7 +5279,20 @@ function paintHero(){
     return;
   }
 
-  // EEG tab: alertness once a baseline exists, otherwise focus or alpha
+  // EEG tab: a running neurofeedback session first, then alertness once a
+  // baseline exists, otherwise focus or alpha
+  if(NF.running){
+    if(NF.phase==="base"){
+      const left=Math.max(0,NF_BASE_S-NF.elapsed);
+      setHero("Neurofeedback","…","","measuring your baseline · "+left.toFixed(0)+" s · sit still",NF.elapsed/NF_BASE_S,"idle");
+    }else{
+      const pz=NF.totalS>0?Math.round(NF.zoneS/NF.totalS*100):0;
+      setHero("Calm",String(Math.round(NF.calm*100)),"%",
+        (NF.art>0?"pausing for a blink · ":"")+"in the zone "+fmtClock(NF.zoneS)+" · "+pz+"% of the time",
+        NF.calm,NF.inZone?"good":null);
+    }
+    return;
+  }
   if(DZ.base){
     const alert=Math.round((1-DZ.score)*100);
     setHero("Alertness",String(alert),"%",DZ.level.toLowerCase()+" · blinks "+DZ.rate.toFixed(0)+"/min",
