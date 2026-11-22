@@ -1152,7 +1152,7 @@ footer.notes{font-size:12px}
   <h2>Rhythm check <span>30-second single-lead ECG, read beat by beat</span></h2>
   <div class="rcbody">
     <div class="rcsos"><b>Chest pain, fainting, sudden breathlessness, or a racing heart that won't settle?</b> Call <b>103</b> or <b>112</b> now. Don't wait for a recording.</div>
-    <p class="howto">Sit down and rest your arms on your legs or a table. Don't talk and don't move for 30 seconds. Lead I gives the clearest picture: IN+ on the left wrist or forearm, IN− on the right, REF on a bony spot such as the right ankle. The check reads the rhythm (regular, irregular, extra beats, too fast or too slow) and measures the beat's main intervals.</p>
+    <p class="howto">Press start, then you have 5 seconds to sit back and rest your arms on your legs or a table. A beep starts the recording and two beeps end it. In between, don't talk and don't move for 30 seconds. Lead I gives the clearest picture: IN+ on the left wrist or forearm, IN− on the right, REF on a bony spot such as the right ankle. The check reads the rhythm (regular, irregular, extra beats, too fast or too slow) and measures the beat's main intervals.</p>
     <div class="actions" style="padding:12px 0 0">
       <button class="btn sm" id="btnRc">Start 30-second check</button>
       <button class="btn ghost sm" id="btnRcSave" disabled>Save ECG image</button>
@@ -4886,25 +4886,52 @@ const RC={rec:false,buf:new Float32Array(RC_N),n:0,gaps:[],gapSeen:-1,badS:0,las
 try{RC.list=JSON.parse(localStorage.getItem(RC_KEY)||"[]");if(!Array.isArray(RC.list)) RC.list=[];}catch(e){RC.list=[];}
 const rcStripCv=document.getElementById("rcStrip"), rcBeatCv=document.getElementById("rcBeat");
 
+/* Pressing the button and holding still are two different moments: you need
+   your hands back on your knees first. So: a 5 s countdown, one beep when
+   recording starts, two when it's done, so you never have to look. */
+const RC_WAIT_S=5;
+let RCA=null;
+function rcBeep(n){
+  try{
+    if(!RCA){const AC=window.AudioContext||window.webkitAudioContext;if(!AC) return;RCA=new AC();}
+    if(RCA.resume) RCA.resume();
+    const t0=RCA.currentTime+0.02;
+    for(let i=0;i<n;i++){
+      const o=RCA.createOscillator(),g=RCA.createGain(),t=t0+i*0.22;
+      o.type="sine";o.frequency.value=880;
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.25,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);
+      o.connect(g);g.connect(RCA.destination);o.start(t);o.stop(t+0.18);
+    }
+  }catch(e){}
+}
 function rcStart(){
   if(!S.running){showAlert("Run the demo or connect the board first.");return;}
-  if(qcBad(CH[0])){showAlert("CH1 isn't reading skin. Check the electrodes, then start the check.");return;}
   hideAlert();
-  Object.assign(RC,{rec:true,n:0,gaps:[],gapSeen:LINKGAP.at,badS:0,lastT:performance.now()});
+  rcBeep(0);                      // unlock audio inside the tap, as iOS requires
+  Object.assign(RC,{wait:true,waitUntil:performance.now()+RC_WAIT_S*1000,rec:false,n:0,gaps:[],badS:0,lastT:performance.now()});
   document.getElementById("btnRc").textContent="Cancel";
 }
+function rcBegin(){
+  Object.assign(RC,{wait:false,rec:true,n:0,gaps:[],gapSeen:LINKGAP.at,badS:0,lastT:performance.now()});
+  rcBeep(1);
+}
 function rcAbort(){
-  if(!RC.rec) return;
-  RC.rec=false;
+  if(!RC.rec&&!RC.wait) return;
+  RC.rec=false;RC.wait=false;
   document.getElementById("btnRc").textContent="Start 30-second check";
 }
 function rcPush(y){
   if(LINKGAP.at!==RC.gapSeen){RC.gapSeen=LINKGAP.at;RC.gaps.push(RC.n);}
   RC.buf[RC.n++]=y;
-  if(RC.n>=RC_N){ rcAbort(); setTimeout(rcFinish,0); }
+  if(RC.n>=RC_N){ rcAbort(); rcBeep(2); setTimeout(rcFinish,0); }
 }
 function rcTick(){
   const now=performance.now(), dt=(now-RC.lastT)/1000; RC.lastT=now;
+  if(RC.wait){
+    if(!S.running){ rcAbort(); showAlert("The signal stopped, so the rhythm check was cancelled."); return; }
+    if(now>=RC.waitUntil) rcBegin();
+    return;
+  }
   if(!RC.rec) return;
   if(!S.running){ rcAbort(); showAlert("The signal stopped, so the rhythm check was cancelled."); return; }
   if(qcBad(CH[0])) RC.badS+=dt;
@@ -5337,7 +5364,7 @@ function rcDraw(){
     const g=cv.getContext("2d");fn(g,W,H,r,rcTheme());
   }
 }
-document.getElementById("btnRc").addEventListener("click",()=>{ RC.rec?rcAbort():rcStart(); });
+document.getElementById("btnRc").addEventListener("click",()=>{ (RC.rec||RC.wait)?rcAbort():rcStart(); });
 document.getElementById("btnRcSave").addEventListener("click",()=>{
   const r=RC.res;if(!r||!r.strip) return;
   // always paper-white with a red grid, whatever the page theme: this is for a doctor
@@ -5824,6 +5851,11 @@ function paintHero(){
   }
 
   if(m==="ecg"){
+    if(RC.wait){
+      const left=Math.max(0,(RC.waitUntil-performance.now())/1000);
+      setHero("Get ready",String(Math.ceil(left)),"s","hands on your knees, relax · recording starts at the beep",1-left/RC_WAIT_S,"idle");
+      return;
+    }
     if(RC.rec){
       const done=RC.n/RC_N;
       setHero("Rhythm check",String(Math.ceil((RC_N-RC.n)/FS)),"s","recording · sit still, arms relaxed, don't talk",done,"idle");
