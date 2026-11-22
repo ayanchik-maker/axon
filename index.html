@@ -102,6 +102,39 @@ button{font:inherit;cursor:pointer}
   font-size:12px;font-weight:600;color:var(--ink-faint)}
 .gbest b{font-family:"IBM Plex Mono",monospace;font-size:16px;color:var(--ink);letter-spacing:0;margin-left:4px}
 
+/* ---------- rhythm check ---------- */
+.rc.hidden{display:none}
+.rcbody{padding:14px}
+.rcsos{font-size:12.5px;line-height:1.5;color:var(--ink);border:1px solid var(--warn);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.rcsos b{color:var(--warn)}
+.rcres{margin-top:16px}
+.rchead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rctag{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:600;
+  border:1px solid currentColor;border-radius:999px;padding:2px 9px}
+.rctag.ok{color:var(--cal)} .rctag.warn{color:var(--warn)} .rctag.unk{color:var(--ink-faint)}
+.rctitle{font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:26px;line-height:1.1}
+.rcfind{margin:10px 0 0;padding-left:18px;font-size:13px;line-height:1.55;color:var(--ink-soft)}
+.rcfind li{margin-bottom:6px}
+.rcfind b{color:var(--ink)}
+.rck{font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.14em;font-size:11px;font-weight:600;
+  color:var(--ink-faint);margin:14px 0 6px}
+.rck .mk{color:var(--cal);letter-spacing:0} .rck .mk.w{color:var(--warn)}
+#rcStrip{display:block;width:100%;height:270px;background:var(--card);border:1px solid var(--rule)}
+.rcgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+#rcBeat{display:block;width:100%;height:170px;background:var(--card);border:1px solid var(--rule)}
+.rcnums{margin:36px 0 0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12.5px}
+.rcnums dt{color:var(--ink-faint);font-family:"Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600;font-size:11px;align-self:center}
+.rcnums dd{margin:0;font-family:"IBM Plex Mono",monospace;color:var(--ink)}
+.rcnums dd.w{color:var(--warn)}
+.rcnums dd small{color:var(--ink-faint)}
+.rcnote{font-size:11.5px;line-height:1.55;color:var(--ink-faint);margin-top:12px}
+.rcprev{margin-top:14px}
+.rcprev .pv{display:flex;justify-content:space-between;gap:10px;width:100%;background:transparent;border:0;border-top:1px solid var(--rule);
+  color:var(--ink);font:inherit;font-size:12.5px;text-align:left;padding:9px 0;cursor:pointer}
+.rcprev .pv .r{font-family:"IBM Plex Mono",monospace;color:var(--ink-soft)}
+.rcprev .pv.w .r{color:var(--warn)}
+@media(max-width:520px){ .rcgrid{grid-template-columns:1fr} .rcnums{margin-top:4px} }
+
 /* ---------- neurofeedback ---------- */
 .nf.hidden{display:none}
 #nfCv{display:block;width:100%;height:240px;background:var(--card);border-bottom:1px solid var(--rule)}
@@ -1114,6 +1147,31 @@ footer.notes{font-size:12px}
   </div>
 </section>
 
+<!-- ============ RHYTHM CHECK ============ -->
+<section class="card rc hidden" id="rcCard">
+  <h2>Rhythm check <span>30-second single-lead ECG, read beat by beat</span></h2>
+  <div class="rcbody">
+    <div class="rcsos"><b>Chest pain, fainting, sudden breathlessness, or a racing heart that won't settle?</b> Call <b>103</b> or <b>112</b> now. Don't wait for a recording.</div>
+    <p class="howto">Sit down and rest your arms on your legs or a table. Don't talk and don't move for 30 seconds. Lead I gives the clearest picture: IN+ on the left wrist or forearm, IN− on the right, REF on a bony spot such as the right ankle. The check reads the rhythm (regular, irregular, extra beats, too fast or too slow) and measures the beat's main intervals.</p>
+    <div class="actions" style="padding:12px 0 0">
+      <button class="btn sm" id="btnRc">Start 30-second check</button>
+      <button class="btn ghost sm" id="btnRcSave" disabled>Save ECG image</button>
+    </div>
+    <div class="rcres" id="rcRes" hidden>
+      <div class="rchead"><span class="rctag" id="rcTag"></span><span class="rctitle" id="rcTitle"></span></div>
+      <ul class="rcfind" id="rcFind"></ul>
+      <div class="rck">The strip · 10 s per row · <span class="mk">●</span> beat · <span class="mk w">A</span>/<span class="mk w">V</span> early beat</div>
+      <canvas id="rcStrip"></canvas>
+      <div class="rcgrid">
+        <div class="rcbeat"><div class="rck">Average beat</div><canvas id="rcBeat"></canvas></div>
+        <dl class="rcnums" id="rcNums"></dl>
+      </div>
+      <p class="rcnote">Axon is not a medical device. A single lead can't rule heart disease in or out, and it <b>cannot</b> detect a heart attack. Treat anything flagged here as a reason to see a doctor and get a 12-lead ECG, never as a diagnosis. A clean result doesn't mean your heart is healthy, either.</p>
+    </div>
+    <div class="rcprev" id="rcPrev"></div>
+  </div>
+</section>
+
 <!-- ============ EDR ============ -->
 <section class="card edr hidden" id="edrCard">
   <h2>Respiration from ECG <span>amplitude modulation and sinus arrhythmia</span></h2>
@@ -1497,7 +1555,7 @@ function pushFrame(vals){
 
   const p=CH[0];
   if(p){
-    if(S.mode==="ecg") ecgStep(p.last);
+    if(S.mode==="ecg"){ ecgStep(p.last); if(RC.rec) rcPush(p.last); }
     else if(S.mode==="eog"){ eogStep(p.last); gazeStep(); }
     else if(S.mode==="eeg"){ dzStep(p.last); if(NF.running) nfStep(p.last); }
   }
@@ -3072,7 +3130,8 @@ function demoFrame(){
     if(S.mode==="ecg"){
       const p=demo.ph, g=(c,w,a)=>a*Math.exp(-Math.pow((p-c)/w,2));
       const lead=[1,0.72,-0.45,0.9][k];
-      v+= lead*( g(.16,.024,70)-g(.30,.007,90)+g(.325,.009,620)-g(.352,.012,150)+g(.52,.05,160) );
+      // P, Q, R, S, T placed for normal intervals at 72 bpm: PR ~140 ms, QRS ~70 ms, QTc ~390 ms
+      v+= lead*( g(.16,.024,70)-g(.30,.007,90)+g(.325,.009,620)-g(.352,.012,150)+g(.63,.06,160) );
     }else if(S.mode==="emg"){
       const sig=EMG_SIG[demo.gest][k], zc=EMG_ZC[demo.gest][k];
       let n=0; for(let i=0;i<4;i++) n+=Math.random()-.5;
@@ -3132,7 +3191,7 @@ function css(v){return getComputedStyle(document.documentElement).getPropertyVal
 
 function sizeCanvases(){
   const dpr=Math.min(window.devicePixelRatio||1,2);
-  for(const c of [chart,spec,fTrend,fJasa,edrT,edrS,gzPad,dzT,dzB,fcT,gameCv,histCv,nfCv]){
+  for(const c of [chart,spec,fTrend,fJasa,edrT,edrS,gzPad,dzT,dzB,fcT,gameCv,histCv,nfCv,rcStripCv,rcBeatCv]){
     const r=c.getBoundingClientRect();
     c.width=Math.max(1,Math.round(r.width*dpr));
     c.height=Math.max(1,Math.round(r.height*dpr));
@@ -3141,7 +3200,7 @@ function sizeCanvases(){
   const r=chart.getBoundingClientRect();
   CW=r.width;CHH=r.height;
   buildGrid(dpr);
-  drawHistChart();drawSparks();
+  drawHistChart();drawSparks();rcDraw();
 }
 function buildGrid(dpr){
   gridCanvas.width=Math.max(1,Math.round(CW*dpr));
@@ -4148,6 +4207,7 @@ function frame(now){
     if(S.mode==="ecg"){ paintEdr(); drawEdrTrace(); drawEdrSpec(); }
     if(S.mode==="eog"){ paintGaze(); }
     if(S.mode==="eeg") nfTick();
+    if(S.mode==="ecg") rcTick();
     paintHero();
     paintQc();
     sessTick();
@@ -4389,6 +4449,8 @@ function applyMode(m){
   if(m!=="eeg") nfStop();
   document.getElementById("ssvepCard").classList.toggle("hidden",m!=="eeg");
   document.getElementById("edrCard").classList.toggle("hidden",m!=="ecg");
+  document.getElementById("rcCard").classList.toggle("hidden",m!=="ecg");
+  if(m!=="ecg") rcAbort();
   document.getElementById("gazeCard").classList.toggle("hidden",m!=="eog");
   document.getElementById("drowseCard").classList.toggle("hidden",m!=="eeg");
   document.getElementById("focusCard").classList.toggle("hidden",m!=="eeg");
@@ -4794,6 +4856,518 @@ gameCv.addEventListener("click",()=>{
 });
 document.getElementById("btnGamePlay").addEventListener("click",gamePlay);
 document.getElementById("btnGameCal").addEventListener("click",()=>{GAME.after=null;gameStartCal();});
+
+/* ======================= rhythm check ======================= */
+/* Thirty seconds of ECG, analysed offline once the recording is complete, so
+   every step can look both ways in time (zero-phase filters, centred windows).
+
+   1. Beats. Pan-Tompkins energy (5-18 Hz band, derivative, square, 150 ms
+      window), an adaptive threshold, a T-wave rejection rule (a candidate
+      within 360 ms of a beat with under half its energy is a T), and a
+      search-back at half threshold over any gap 1.66x the typical interval.
+   2. The average beat. A sample-wise median of every beat, aligned on R, then
+      rebuilt from the beats that match it, so early beats and noise don't
+      shape it. PR, QRS and QT are measured on this, where noise has mostly
+      averaged away: QRS by where the slope goes quiet either side of R, T end
+      by the tangent at T's steepest downslope, QTc by Fridericia.
+   3. Early beats. An interval under 80% of its neighbours' median, not
+      followed by another short one. Wide and unlike the average beat reads
+      as ventricular (V), otherwise atrial (A).
+   4. Irregular rhythm. With early beats removed: RMSSD relative to the mean
+      interval (how much it jumps), the lag-1 autocorrelation (whether the
+      jumps follow a pattern, as breathing does, or are random) and the
+      turning-point ratio. Random and large, with no clear P wave, is the
+      pattern of atrial fibrillation. Large but smooth is sinus arrhythmia,
+      which is normal.
+   5. Quality first. Too few beats, too many that match nothing, or electrodes
+      off for more than a few seconds gives "inconclusive", never a guess. */
+const RC_S=30, RC_N=RC_S*FS, RC_KEY="axon.rhythm.v1";
+const RC={rec:false,buf:new Float32Array(RC_N),n:0,gaps:[],gapSeen:-1,badS:0,lastT:0,res:null,list:[]};
+try{RC.list=JSON.parse(localStorage.getItem(RC_KEY)||"[]");if(!Array.isArray(RC.list)) RC.list=[];}catch(e){RC.list=[];}
+const rcStripCv=document.getElementById("rcStrip"), rcBeatCv=document.getElementById("rcBeat");
+
+function rcStart(){
+  if(!S.running){showAlert("Run the demo or connect the board first.");return;}
+  if(qcBad(CH[0])){showAlert("CH1 isn't reading skin. Check the electrodes, then start the check.");return;}
+  hideAlert();
+  Object.assign(RC,{rec:true,n:0,gaps:[],gapSeen:LINKGAP.at,badS:0,lastT:performance.now()});
+  document.getElementById("btnRc").textContent="Cancel";
+}
+function rcAbort(){
+  if(!RC.rec) return;
+  RC.rec=false;
+  document.getElementById("btnRc").textContent="Start 30-second check";
+}
+function rcPush(y){
+  if(LINKGAP.at!==RC.gapSeen){RC.gapSeen=LINKGAP.at;RC.gaps.push(RC.n);}
+  RC.buf[RC.n++]=y;
+  if(RC.n>=RC_N){ rcAbort(); setTimeout(rcFinish,0); }
+}
+function rcTick(){
+  const now=performance.now(), dt=(now-RC.lastT)/1000; RC.lastT=now;
+  if(!RC.rec) return;
+  if(!S.running){ rcAbort(); showAlert("The signal stopped, so the rhythm check was cancelled."); return; }
+  if(qcBad(CH[0])) RC.badS+=dt;
+}
+
+function rcMed(a){const s=Float64Array.from(a).sort(),n=s.length;return n?(n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2):NaN;}
+function rcPct(a,p){const s=Float64Array.from(a).sort();return s.length?s[Math.min(s.length-1,Math.floor(p*s.length))]:NaN;}
+function rcFiltfilt(x,specs){
+  const y=Float64Array.from(x),N=y.length;
+  for(const [type,fc,Q] of specs){
+    const f=new Biquad();(type==="hp"?designHP:designLP)(f,fc,FS,Q);
+    for(let i=0;i<N;i++) y[i]=f.process(y[i]);
+    f.z1=0;f.z2=0;
+    for(let i=N-1;i>=0;i--) y[i]=f.process(y[i]);
+  }
+  return y;
+}
+function rcCorr(a,b,i0,i1){
+  let ma=0,mb=0,n=i1-i0;for(let i=i0;i<i1;i++){ma+=a[i];mb+=b[i];}ma/=n;mb/=n;
+  let sab=0,saa=0,sbb=0;for(let i=i0;i<i1;i++){const da=a[i]-ma,db=b[i]-mb;sab+=da*db;saa+=da*da;sbb+=db*db;}
+  return sab/Math.sqrt(saa*sbb+1e-12);
+}
+/* QRS limits on one beat (R at index c): walk out from R until the slope has
+   been quiet (under 8% of the QRS's steepest) for 8 ms. A Q or S nadir is
+   only flat for a sample or two, so it doesn't stop the walk. */
+function rcQrs(t,c,base){
+  base=base||0;
+  const d=i=>(t[Math.min(t.length-1,i+1)]-t[Math.max(0,i-1)]);
+  let mx=0;for(let i=c-Math.round(0.05*FS);i<=c+Math.round(0.06*FS);i++) if(i>0&&i<t.length-1) mx=Math.max(mx,Math.abs(d(i)));
+  // quiet = flat AND back near the baseline; a wide, slurred QRS has gentle
+  // slopes but stays far from baseline, so it isn't mistaken for its own end
+  const amp=Math.abs(t[c]-base);
+  const th=0.08*mx, q=i=>{for(let k=0;k<4;k++){const j=i+k; if(Math.abs(d(j))>=th||Math.abs(t[j]-base)>0.1*amp) return false;} return true;};
+  let on=c-Math.round(0.06*FS), off=c+Math.round(0.08*FS);
+  for(let i=c-2;i>c-Math.round(0.15*FS)&&i>3;i--) if(q(i-3)){on=i;break;}
+  for(let i=c+2;i<c+Math.round(0.18*FS)&&i<t.length-5;i++) if(q(i)){off=i;break;}
+  return {on,off};
+}
+
+function rcAnalyze(raw,N,gaps,badS){
+  const R={ok:false,when:Date.now(),find:[],nums:{}};
+  let mu=0;for(let i=0;i<N;i++) mu+=raw[i];mu/=N;
+  const x=rcFiltfilt(Array.from(raw,v=>v-mu),[["hp",0.5,Math.SQRT1_2]]);
+  const bp=rcFiltfilt(x,[["hp",5,Math.SQRT1_2],["lp",18,Math.SQRT1_2]]);
+  const e=new Float64Array(N);for(let i=1;i<N-1;i++){const d=bp[i+1]-bp[i-1];e[i]=d*d;}
+  const W=Math.round(0.15*FS),h=W>>1,cs=new Float64Array(N+1);
+  for(let i=0;i<N;i++) cs[i+1]=cs[i]+e[i];
+  const m=new Float64Array(N);for(let i=0;i<N;i++) m[i]=(cs[Math.min(N,i+h+1)]-cs[Math.max(0,i-h)])/W;
+
+  // candidate beats
+  const thr=0.3*rcPct(m,0.98), ref=Math.round(0.25*FS);
+  const pickPeaks=(a,b,th)=>{const out=[];let i=a;
+    while(i<b){ if(m[i]>th){let j=i,best=i;while(j<b&&m[j]>th){if(m[j]>m[best])best=j;j++;}out.push(best);i=j;} else i++; }
+    return out;};
+  let cand=pickPeaks(0,N,thr), pk=[];
+  for(const c of cand){
+    const last=pk[pk.length-1];
+    if(last!==undefined&&c-last<ref){ if(m[c]>m[last]) pk[pk.length-1]=c; continue; }
+    if(last!==undefined&&c-last<0.36*FS&&m[c]<0.5*m[last]) continue;   // a T wave
+    pk.push(c);
+  }
+  if(pk.length>=4){   // search back over long gaps at half threshold
+    const mr=rcMed(pk.slice(1).map((v,i)=>v-pk[i])), add=[];
+    for(let i=1;i<pk.length;i++) if(pk[i]-pk[i-1]>1.66*mr){
+      const extra=pickPeaks(pk[i-1]+ref,pk[i]-ref,thr*0.5);
+      if(extra.length) add.push(extra.reduce((a,b)=>m[b]>m[a]?b:a));
+    }
+    if(add.length) pk=pk.concat(add).sort((a,b)=>a-b);
+  }
+  // R: the true extremum near each energy peak, with one polarity for the recording
+  const win=Math.round(0.1*FS), signed=[];
+  for(const c of pk){let b=c;for(let i=Math.max(0,c-win);i<Math.min(N,c+win);i++) if(Math.abs(x[i])>Math.abs(x[b])) b=i;signed.push(x[b]);}
+  const pol=rcMed(signed)<0?-1:1;
+  const xs=Float64Array.from(x,v=>v*pol);
+  const Rp=pk.map(c=>{let b=c;for(let i=Math.max(0,c-win);i<Math.min(N,c+win);i++) if(xs[i]>xs[b]) b=i;return b;});
+  R.strip=Float32Array.from(xs);R.sfs=FS;R.beats=Rp;R.labels=Rp.map(()=>"N");
+
+  const nB=Rp.length;
+  R.nums.beats=nB;
+  if(nB<8){ R.verdict="unk";R.title="Couldn't find enough beats";
+    R.find.push("Only "+nB+" beats were found in 30 seconds. Check that the electrodes are on skin, sit still, and try again.");
+    return R; }
+
+  // intervals, and which ones a radio gap makes untrustworthy
+  const rr=[NaN], valid=[false];
+  for(let i=1;i<nB;i++){
+    rr.push((Rp[i]-Rp[i-1])/FS*1000);
+    valid.push(!gaps.some(g=>g>Rp[i-1]&&g<=Rp[i]));
+  }
+
+  // average beat
+  const pre=Math.round(0.40*FS), post=Math.round(0.62*FS), L=pre+post;
+  const idx=[];for(let i=0;i<nB;i++) if(Rp[i]-pre>=0&&Rp[i]+post<N) idx.push(i);
+  const seg=i=>xs.subarray(Rp[i]-pre,Rp[i]+post);
+  const medTemplate=list=>{const t=new Float64Array(L),col=new Float64Array(list.length);
+    for(let k=0;k<L;k++){list.forEach((i,j)=>col[j]=xs[Rp[i]-pre+k]);t[k]=rcMed(col);}return t;};
+  let tpl=medTemplate(idx);
+  const q0=pre-Math.round(0.06*FS), q1=pre+Math.round(0.08*FS);
+  let corr=new Map();for(const i of idx) corr.set(i,rcCorr(seg(i),tpl,q0,q1));
+  const normal=idx.filter(i=>corr.get(i)>=0.8);
+  if(normal.length>=5){tpl=medTemplate(normal);for(const i of idx) corr.set(i,rcCorr(seg(i),tpl,q0,q1));}
+
+  // isoelectric level: the flattest 20 ms before the QRS
+  let base=0,bv=Infinity;
+  for(let s=pre-Math.round(0.30*FS)+2;s<pre-Math.round(0.04*FS);s++){
+    let a=0,a2=0,n=Math.round(0.02*FS);for(let k=0;k<n;k++){a+=tpl[s+k];a2+=tpl[s+k]*tpl[s+k];}
+    const v=a2/n-(a/n)*(a/n);if(v<bv){bv=v;base=a/n;}
+  }
+  for(let k=0;k<L;k++) tpl[k]-=base;
+  const rAmp=tpl[pre];
+  // template uncertainty: spread across beats, per sample, over the P window
+  const useB=normal.length>=5?normal:idx;
+  let seAcc=[];
+  for(let k=pre-Math.round(0.28*FS);k<pre-Math.round(0.05*FS);k+=3){
+    const col=useB.map(i=>xs[Rp[i]-pre+k]),md=rcMed(col);
+    seAcc.push(rcMed(col.map(v=>Math.abs(v-md)))*1.4826);
+  }
+  const beatNoise=rcMed(seAcc), se=beatNoise/Math.sqrt(useB.length);
+
+  // QRS, P, T on the average beat
+  const qb=rcQrs(tpl,pre,0), qrsMs=(qb.off-qb.on)/FS*1000;
+  const rrMed=rcMed(rr.filter((v,i)=>valid[i]));
+  // P lives between the previous T and this QRS; at fast rates that window
+  // shrinks, and the previous T must not be mistaken for it. A maximum sitting
+  // on the window's edge is the slope of something else, not a P.
+  const pA=Math.max(2,qb.on-Math.round(Math.min(0.36,0.42*rrMed/1000)*FS)), pB=qb.on-Math.round(0.03*FS);
+  let pIdx=-1,pAmp=0;
+  for(let k=pA;k<pB;k++) if(tpl[k]>pAmp){pAmp=tpl[k];pIdx=k;}
+  const pSeen=pIdx>pA+2&&pIdx<pB-2&&pAmp>Math.max(4*se,0.05*rAmp);
+  let pOn=-1;
+  if(pSeen){pOn=pIdx;while(pOn>2&&tpl[pOn]>0.15*pAmp) pOn--;}
+  let tIdx=-1,tAmp=0;
+  const tEndLim=Math.min(L-3,pre+Math.round(Math.min(0.62*rrMed/1000,0.6)*FS));
+  for(let k=qb.off+Math.round(0.06*FS);k<tEndLim;k++) if(Math.abs(tpl[k])>Math.abs(tAmp)){tAmp=tpl[k];tIdx=k;}
+  let tEnd=-1;
+  if(tIdx>0&&Math.abs(tAmp)>Math.max(4*se,0.04*rAmp)){
+    const sg=Math.sign(tAmp);let best=tIdx,bs=0;
+    for(let k=tIdx;k<tEndLim;k++){const s=-sg*(tpl[k+1]-tpl[k-1])/2;if(s>bs){bs=s;best=k;}}
+    if(bs>0) tEnd=Math.min(L-1,Math.round(best+tpl[best]*sg/bs));
+  }
+  const prMs=pSeen?(qb.on-pOn)/FS*1000:null;
+  const qtMs=tEnd>0?(tEnd-qb.on)/FS*1000:null;
+  const qtc=qtMs?qtMs/Math.cbrt(rrMed/1000):null;
+  R.tpl=Float32Array.from(tpl);R.pre=pre;R.marks={pOn:pSeen?pOn:-1,pIdx:pSeen?pIdx:-1,on:qb.on,off:qb.off,tIdx,tEnd};
+  R.overlay=useB.slice(0,24).map(i=>Float32Array.from(seg(i),v=>v-base));
+
+  // quality
+  const noisy=idx.filter(i=>corr.get(i)<0.6).length/idx.length;
+  const snr=rAmp/Math.max(1e-9,beatNoise);
+  const hr=60000/rrMed;
+  R.nums.hr=hr;R.nums.snr=snr;
+  const qProblems=[];
+  if(badS>6) qProblems.push("the electrodes lost contact for "+badS.toFixed(0)+" s");
+  if(snr<5) qProblems.push("the signal was weak next to the noise");
+  if(!(hr>30&&hr<220)) qProblems.push("the beat timing made no physiological sense");
+  // a third of beats unlike the average is noise, unless they are timed like early beats (checked below)
+
+  // early beats
+  let early=[];
+  for(let i=1;i<nB;i++){
+    if(!valid[i]) continue;
+    const nb=[];for(let j=Math.max(1,i-4);j<=Math.min(nB-1,i+4);j++) if(j!==i&&j!==i+1&&valid[j]) nb.push(rr[j]);
+    if(nb.length<3) continue;
+    const lm=rcMed(nb);
+    // early against the neighbourhood AND against the beat just before, AND
+    // followed by a longer interval: breathing shortens intervals gradually
+    // and keeps them short for a few beats, an early beat does it in one step
+    const prevOk=!(valid[i-1]&&rr[i-1]>0)||rr[i]<0.85*rr[i-1];
+    const nextOk=!(i+1<nB&&valid[i+1])||rr[i+1]>1.15*rr[i];
+    // a sharp one-beat drop followed by a clear rebound is early even when
+    // breathing has already pulled the neighbours down a little
+    const sharp=rr[i]<0.85*lm&&valid[i-1]&&rr[i]<0.82*rr[i-1]&&i+1<nB&&valid[i+1]&&rr[i+1]>1.3*rr[i];
+    if((rr[i]<0.8*lm&&prevOk&&nextOk)||sharp) early.push({i,lm});
+  }
+  const tplW=qrsMs;
+  for(const ev of early){
+    const i=ev.i;let wide=false,unlike=corr.has(i)&&corr.get(i)<0.75;
+    if(corr.has(i)){const s=seg(i),b=rcQrs(s,pre,base);wide=(b.off-b.on)/FS*1000>Math.max(tplW*1.3,110);}
+    ev.type=(wide&&unlike)?"V":"A";
+  }
+  const earlySet=new Set(early.map(e=>e.i));
+  const noiseBeats=idx.filter(i=>corr.get(i)<0.6&&!earlySet.has(i)).length/idx.length;
+  if(noiseBeats>0.25) qProblems.push(Math.round(noiseBeats*100)+"% of beats looked like noise rather than heartbeats");
+
+  // irregularity, early beats and the interval after each taken out
+  const clean=[];for(let i=1;i<nB;i++) if(valid[i]&&!earlySet.has(i)&&!earlySet.has(i-1)) clean.push(rr[i]);
+  const allRR=[];for(let i=1;i<nB;i++) if(valid[i]) allRR.push(rr[i]);
+  const FA=rcRRFeatures(allRR), FC=rcRRFeatures(clean);
+  const nrmssd=FC.nr, r1=FC.r1, tpr=FC.tpr, rPat=FC.rPat;
+  R.nums.conc=FC.conc;
+  const pauses=[];for(let i=1;i<nB;i++) if(valid[i]&&rr[i]>2000) pauses.push({i,ms:rr[i]});
+
+  Object.assign(R.nums,{rmssd:nrmssd*rrMed,nrmssd,r1,tpr,pr:prMs,qrs:qrsMs,qt:qtMs,qtc,pSeen,early:early.length,
+    earlyA:early.filter(e=>e.type==="A").length,earlyV:early.filter(e=>e.type==="V").length,noise:noiseBeats});
+  for(const ev of early) R.labels[ev.i]=ev.type;
+  R.pauses=pauses.map(p=>({at:Rp[p.i-1],to:Rp[p.i],ms:p.ms}));
+  return rcVerdict(R,{qProblems,FA,FC,pSeen,hr,early,nB,pauses,qrsMs,qtc,prMs,snr,noiseBeats,badS});
+}
+/* Irregularity of a run of intervals. Breathing makes the interval rise and
+   fall in a cycle a few beats long: a strong autocorrelation at the cycle
+   length, or (for fast breathing at a slow rate, only 4-5 beats per breath)
+   one clear spectral peak. Atrial fibrillation has no memory at any lag and
+   spreads its power across every frequency. */
+function rcRRFeatures(seq){
+  const F={nr:0,r1:0,tpr:0,rPat:0,conc:0,n:seq.length};
+  if(seq.length<10) return F;
+  const clean=seq;
+  {
+    const mean=clean.reduce((a,b)=>a+b,0)/clean.length;
+    let sq=0;for(let i=1;i<clean.length;i++) sq+=(clean[i]-clean[i-1])**2;
+    F.nr=Math.sqrt(sq/(clean.length-1))/mean;
+    let v=0;for(const c of clean) v+=(c-mean)**2;
+    const ac=lag=>{let s=0;for(let i=lag;i<clean.length;i++) s+=(clean[i]-mean)*(clean[i-lag]-mean);return s/Math.max(1e-9,v);};
+    F.r1=ac(1);
+    for(let lag=1;lag<=Math.min(10,Math.floor(clean.length/3));lag++) F.rPat=Math.max(F.rPat,ac(lag));
+    const n=clean.length,K=Math.floor(n/2),pw=new Float64Array(K+2);let tot=0;
+    for(let k=1;k<=K;k++){let re=0,im=0;for(let i=0;i<n;i++){const a=2*Math.PI*k*i/n;re+=(clean[i]-mean)*Math.cos(a);im-=(clean[i]-mean)*Math.sin(a);}pw[k]=re*re+im*im;tot+=pw[k];}
+    for(let k=1;k<=K;k++) F.conc=Math.max(F.conc,(pw[k-1]+pw[k]+pw[k+1])/Math.max(1e-9,tot));
+    let tp=0;for(let i=1;i<clean.length-1;i++) if((clean[i]-clean[i-1])*(clean[i+1]-clean[i])<0) tp++;
+    F.tpr=tp/(clean.length-2);
+  }
+  F.patterned=F.rPat>0.5||F.conc>0.5;
+  return F;
+}
+function rcVerdict(R,o){
+  const {qProblems,FA,FC,pSeen,hr,early,nB,pauses,qrsMs,qtc,prMs,snr,noiseBeats,badS}=o;
+  const nrmssd=FC.nr;
+  if(qProblems.length){
+    R.verdict="unk";R.title="Couldn't read this recording";
+    R.find.push("Not enough to go on: "+qProblems.join("; ")+".");
+    R.find.push("Sit still with your arms resting, press the electrodes firmly (a little water or gel helps), keep away from chargers and mains cables, and try again.");
+    return R;
+  }
+  R.ok=true;
+  const fmt=v=>Math.round(v);
+  // AF is judged on every interval: in AF many beats look "early", and taking
+  // them out would remove the very irregularity that defines it. The early-
+  // beat explanation wins only when early beats are few and the rest regular.
+  // In AF the atria quiver instead of beating, so the average beat has no P
+  // wave. A clear P before every QRS rules the AF reading out; an irregular
+  // rhythm with P waves is reported as irregular, not as AF.
+  const randomAll=FA.n>=10&&FA.nr>0.10&&!FA.patterned&&FA.tpr>0.45&&FA.tpr<0.9&&!pSeen;
+  const explainedByEarly=early.length/nB<=0.15&&FC.n>=10&&(FC.nr<0.08||FC.patterned);
+  const af=randomAll&&!explainedByEarly;
+  const irregular=!af&&FC.nr>0.10&&!FC.patterned;
+  const sinusArr=!af&&!irregular&&FC.nr>0.05&&FC.patterned;
+  R.nums.rPat=FC.rPat;R.nums.nrAll=FA.nr;
+  const flags=[];   // [severity, title]
+
+  if(af){
+    flags.push(["warn","Irregular rhythm, possible atrial fibrillation"]);
+    R.find.push("<b>The time between beats jumps around at random</b> ("+fmt(FA.nr*100)+"% beat to beat, with no repeating pattern)"+
+      (pSeen?".":", and <b>no clear P wave</b> (the small bump the atria make before each beat) was found.")+
+      " That is the pattern of <b>atrial fibrillation (AF)</b>. AF is common, often treatable, and it raises stroke risk, so it is worth checking properly: show this strip to a doctor and ask for a 12-lead ECG. One home recording can't diagnose it.");
+  }else if(irregular){
+    flags.push(["note","Irregular rhythm"]);
+    R.find.push("<b>Beat timing varied more than usual</b> ("+fmt(nrmssd*100)+"% beat to beat) without a clear pattern"+(pSeen?", but P waves were present":"")+
+      ". This can be movement, extra beats the check missed, or a rhythm problem. Repeat the check sitting very still; if it keeps showing up, see a doctor.");
+  }else if(sinusArr){
+    R.find.push("Your heart speeds up and slows down with your breathing (<b>sinus arrhythmia</b>). This is normal and healthy, especially in young people.");
+  }else{
+    R.find.push("<b>The beats arrive regularly</b>"+(pSeen?", each with a P wave before it: the pattern of normal <b>sinus rhythm</b>.":
+      ". No clear P wave was seen in this lead. That's common with wrist electrodes and doesn't by itself mean anything is wrong."));
+  }
+  if(!af){
+    if(hr>100){flags.push([hr>120?"warn":"note","Fast heart rate"]);
+      R.find.push("<b>Heart rate "+fmt(hr)+" bpm</b> is above 100 at rest (tachycardia). Exercise, caffeine, stress, fever or dehydration all raise it. If it stays over 100 when you're truly resting, or comes with dizziness or a pounding chest, see a doctor.");}
+    else if(hr<50){flags.push(["note","Slow heart rate"]);
+      R.find.push("<b>Heart rate "+fmt(hr)+" bpm</b> is below 50 (bradycardia). It is normal in fit people and during deep rest. If you also feel faint, dizzy or unusually tired, see a doctor.");}
+    else R.find.push("Heart rate <b>"+fmt(hr)+" bpm</b>, in the normal resting range (50–100).");
+  }else R.find.push("Average heart rate "+fmt(hr)+" bpm.");
+  if(pauses.length){
+    const lg=Math.max(...pauses.map(p=>p.ms));
+    flags.push([lg>3000?"warn":"note","Pause between beats"]);
+    R.find.push("<b>A pause of "+(lg/1000).toFixed(1)+" s</b> between beats."+(lg>3000?" Pauses over 3 seconds should be checked by a doctor, especially with dizziness or fainting.":
+      " Short pauses can happen with a deep breath or a missed detection; if you feel faint at the same time, see a doctor."));
+  }
+  if(early.length&&!af){
+    const a=R.nums.earlyA,v=R.nums.earlyV,frac=early.length/nB;
+    flags.push([frac>0.1||v>=3?"warn":"note","Extra beats"]);
+    R.find.push("<b>"+early.length+" early beat"+(early.length>1?"s":"")+"</b>"+
+      (v?" ("+(a?a+" looked atrial, ":"")+v+" looked ventricular, wide and unlike the rest)":" (they looked atrial: same shape, just early)")+
+      ". Occasional extra beats are very common and usually harmless; coffee, stress and poor sleep bring them on."+
+      (frac>0.1?" Here they made up "+fmt(frac*100)+"% of beats, which is a lot: worth mentioning to a doctor.":""));
+  }
+  // intervals: flagged with a margin, since a home amplifier blurs edges
+  if(qrsMs>=120){flags.push(["warn","Wide QRS"]);
+    R.find.push("<b>QRS "+fmt(qrsMs)+" ms</b> is wide (normal is under 120). Wide QRS can mean a conduction delay such as a bundle branch block. Home measurements can overestimate this, so repeat it; if it stays wide, see a doctor.");}
+  if(qtc&&qtc>=470){flags.push(["warn","Long QT"]);
+    R.find.push("<b>QTc "+fmt(qtc)+" ms</b> looks long (normal is under about 450 for men and 460 for women). Some medicines and low potassium or magnesium lengthen it, and so does an inherited condition. A home measurement can be off by 20–40 ms, so ask a doctor for a proper ECG before drawing conclusions.");}
+  else if(qtc&&qtc<330){flags.push(["note","Short QT"]);
+    R.find.push("<b>QTc "+fmt(qtc)+" ms</b> reads short. That is more often a measurement problem (a flat T wave) than a real finding; repeat it in Lead I.");}
+  if(prMs&&prMs>220){flags.push(["note","Long PR"]);
+    R.find.push("<b>PR "+fmt(prMs)+" ms</b> is long (normal 120–200): the pattern of a first-degree AV block, which is usually harmless and common in athletes. Mention it at your next check-up.");}
+  R.find.push("Signal quality "+(snr>15&&noiseBeats<0.05?"good":"fair")+": "+nB+" beats over 30 s"+(badS>1?", electrodes off for "+badS.toFixed(0)+" s":"")+".");
+
+  const rank={warn:2,note:1};
+  flags.sort((a,b)=>rank[b[0]]-rank[a[0]]);
+  if(flags.length){R.verdict=flags[0][0];R.title=flags[0][1];}
+  else{R.verdict="ok";R.title=(pSeen?"Sinus rhythm":"Regular rhythm")+" · "+fmt(hr)+" bpm";}
+  return R;
+}
+
+function rcFinish(){
+  const r=rcAnalyze(RC.buf,RC_N,RC.gaps,RC.badS);
+  RC.res=r;
+  // keep a compact copy: the strip at 125 Hz is plenty to look at again
+  const st=4, keep={when:r.when,verdict:r.verdict,title:r.title,find:r.find,nums:r.nums,ok:r.ok,
+    sfs:FS/st,strip:Array.from({length:Math.floor(r.strip.length/st)},(_,i)=>Math.round(r.strip[i*st]*10)/10),
+    beats:(r.beats||[]).map(b=>Math.round(b/st)),labels:r.labels||[],pre:r.pre?Math.round(r.pre):0,
+    tpl:r.tpl?Array.from(r.tpl,v=>Math.round(v*10)/10):null,tfs:FS,marks:r.marks||null,
+    pauses:(r.pauses||[]).map(p=>({at:Math.round(p.at/st),to:Math.round(p.to/st),ms:p.ms}))};
+  RC.list.unshift(keep);
+  while(RC.list.length>12) RC.list.pop();
+  try{localStorage.setItem(RC_KEY,JSON.stringify(RC.list));}catch(e){RC.list.length=Math.min(RC.list.length,4);try{localStorage.setItem(RC_KEY,JSON.stringify(RC.list));}catch(e2){}}
+  if(r.nums&&r.nums.hr) sessNote("Rhythm check","bpm",r.nums.hr);
+  rcShow(r);rcRenderPrev();
+}
+function rcShow(r){
+  RC.res=r;
+  document.getElementById("rcRes").hidden=false;
+  const tag=document.getElementById("rcTag");
+  tag.className="rctag "+r.verdict;
+  tag.textContent={ok:"Looks normal",note:"Worth knowing",warn:"See a doctor",unk:"Inconclusive"}[r.verdict]||"";
+  document.getElementById("rcTitle").textContent=r.title;
+  document.getElementById("rcFind").innerHTML=r.find.map(f=>"<li>"+f+"</li>").join("");
+  const n=r.nums||{}, f=v=>v==null||!isFinite(v)?"—":Math.round(v);
+  const rows=[
+    ["Heart rate",n.hr?f(n.hr)+" <small>bpm</small>":"—",n.hr>100||n.hr<50],
+    ["Beats",n.beats!=null?n.beats+(n.early?" <small>("+n.early+" early)</small>":""):"—",n.early>0],
+    ["RMSSD",n.rmssd?f(n.rmssd)+" <small>ms</small>":"—",false],
+    ["P wave",n.pSeen==null?"—":n.pSeen?"seen":"not clear",false],
+    ["PR",n.pr?f(n.pr)+" <small>ms</small>":"—",n.pr>220],
+    ["QRS",n.qrs?f(n.qrs)+" <small>ms</small>":"—",n.qrs>=120],
+    ["QT",n.qt?f(n.qt)+" <small>ms</small>":"—",false],
+    ["QTc",n.qtc?f(n.qtc)+" <small>ms</small>":"—",n.qtc>=470||(n.qtc&&n.qtc<330)]];
+  document.getElementById("rcNums").innerHTML=rows.map(([k,v,w])=>"<dt>"+k+"</dt><dd"+(w?' class="w"':"")+">"+v+"</dd>").join("");
+  document.getElementById("btnRcSave").disabled=!r.strip;
+  requestAnimationFrame(()=>{sizeCanvases();});
+}
+function rcRenderPrev(){
+  const el=document.getElementById("rcPrev");
+  if(!RC.list.length){el.innerHTML="";return;}
+  el.innerHTML='<div class="rck">Earlier checks on this phone</div>'+RC.list.map((r,i)=>
+    '<button type="button" class="pv'+(r.verdict==="warn"?" w":"")+'" data-i="'+i+'"><span>'+esc(fmtWhen(r.when))+'</span><span class="r">'+esc(r.title)+'</span></button>').join("");
+  el.querySelectorAll(".pv").forEach(b=>b.addEventListener("click",()=>{
+    const r=RC.list[+b.dataset.i];
+    rcShow(Object.assign({},r,{strip:Float32Array.from(r.strip),tpl:r.tpl?Float32Array.from(r.tpl):null,overlay:null,pre:r.pre}));
+    document.getElementById("rcRes").scrollIntoView({behavior:"smooth",block:"start"});
+  }));
+}
+
+/* drawing: shared by the screen and the saved image */
+function rcPaintStrip(g,W,H,r,th){
+  g.fillStyle=th.bg;g.fillRect(0,0,W,H);
+  const rows=3,rowH=H/rows,sfs=r.sfs,per=10*sfs,pxs=W/10;
+  // ECG paper: a fine line every 0.04 s and a bold one every 0.2 s
+  for(let row=0;row<rows;row++){
+    const y0=row*rowH;
+    if(pxs*0.04>=3){g.strokeStyle=th.fine;g.lineWidth=0.5;g.beginPath();
+      for(let s=0;s<=10;s+=0.04){const x=Math.round(s*pxs)+.5;g.moveTo(x,y0);g.lineTo(x,y0+rowH);}
+      for(let y=y0;y<=y0+rowH;y+=pxs*0.04){g.moveTo(0,Math.round(y)+.5);g.lineTo(W,Math.round(y)+.5);}g.stroke();}
+    g.strokeStyle=th.bold;g.lineWidth=0.8;g.beginPath();
+    for(let s=0;s<=10.001;s+=0.2){const x=Math.round(s*pxs)+.5;g.moveTo(x,y0);g.lineTo(x,y0+rowH);}
+    for(let y=y0;y<=y0+rowH+0.1;y+=pxs*0.2){g.moveTo(0,Math.round(y)+.5);g.lineTo(W,Math.round(y)+.5);}
+    g.stroke();
+  }
+  if(!r.strip||!r.strip.length) return;
+  // scale: the typical R peak fills about half a row
+  const rv=(r.beats||[]).map(b=>r.strip[b]).filter(v=>isFinite(v));
+  const amp=Math.max(1e-6,rv.length?rcMed(rv):rcPct(Array.from(r.strip,Math.abs),0.99));
+  const k=(rowH*0.5)/amp;
+  g.strokeStyle=th.ink;g.lineWidth=th.lw||1.2;g.lineJoin="round";
+  for(let row=0;row<rows;row++){
+    const y0=row*rowH, mid=y0+rowH*0.62;
+    g.save();g.beginPath();g.rect(0,y0,W,rowH);g.clip();
+    g.beginPath();
+    const a=row*per,b=Math.min(r.strip.length,(row+1)*per);
+    const step=Math.max(1,Math.floor((b-a)/(W*2)));
+    for(let i=a;i<b;i+=step){const x=(i-a)/sfs*pxs,y=mid-r.strip[i]*k;i===a?g.moveTo(x,y):g.lineTo(x,y);}
+    g.stroke();g.restore();
+  }
+  // beat marks and early-beat letters
+  g.textAlign="center";g.font=th.font;
+  (r.beats||[]).forEach((b,i)=>{
+    const row=Math.floor(b/per); if(row>=rows) return;
+    const x=(b-row*per)/sfs*pxs, y=row*rowH+10, lab=(r.labels||[])[i]||"N";
+    if(lab==="N"){g.fillStyle=th.cal;g.beginPath();g.arc(x,y,2.4,0,Math.PI*2);g.fill();}
+    else{g.fillStyle=th.warn;g.fillText(lab,x,y+4);}
+  });
+  for(const p of (r.pauses||[])){
+    const row=Math.floor(p.at/per); if(row>=rows) continue;
+    const x0=(p.at-row*per)/sfs*pxs,x1=Math.min(W,(p.to-row*per)/sfs*pxs),y=row*rowH+rowH-8;
+    g.strokeStyle=th.warn;g.lineWidth=1;g.beginPath();g.moveTo(x0,y);g.lineTo(x1,y);g.stroke();
+    g.fillStyle=th.warn;g.fillText((p.ms/1000).toFixed(1)+" s",(x0+x1)/2,y-4);
+  }
+}
+function rcPaintBeat(g,W,H,r,th){
+  g.fillStyle=th.bg;g.fillRect(0,0,W,H);
+  if(!r.tpl) return;
+  const t=r.tpl,L=t.length,fs=r.tfs||FS;
+  let mx=0,mn=0;for(const v of t){if(v>mx)mx=v;if(v<mn)mn=v;}
+  const pad=14,top=22,bot=H-26,k=(bot-top)/Math.max(1e-6,mx-mn),y=v=>top+(mx-v)*k,x=i=>pad+(W-2*pad)*i/(L-1);
+  g.strokeStyle=th.bold;g.lineWidth=0.6;g.beginPath();g.moveTo(pad,y(0)+.5);g.lineTo(W-pad,y(0)+.5);g.stroke();
+  if(r.overlay){g.strokeStyle=th.faint;g.lineWidth=0.8;
+    for(const s of r.overlay){g.beginPath();for(let i=0;i<L;i++){const yy=y(s[i]);i?g.lineTo(x(i),yy):g.moveTo(x(i),yy);}g.stroke();}}
+  g.strokeStyle=th.ink;g.lineWidth=1.8;g.beginPath();
+  for(let i=0;i<L;i++){i?g.lineTo(x(i),y(t[i])):g.moveTo(x(i),y(t[i]));}g.stroke();
+  const M=r.marks;if(!M) return;
+  g.font=th.font;g.textAlign="center";
+  const vline=(i,c)=>{if(i<0)return;g.strokeStyle=c;g.setLineDash([3,3]);g.lineWidth=1;g.beginPath();g.moveTo(x(i)+.5,top-6);g.lineTo(x(i)+.5,bot);g.stroke();g.setLineDash([]);};
+  vline(M.pOn,th.cal);vline(M.on,th.cal);vline(M.off,th.cal);vline(M.tEnd,th.warn);
+  g.fillStyle=th.ink;
+  if(M.pIdx>0) g.fillText("P",x(M.pIdx),top-8);
+  g.fillText("QRS",x((M.on+M.off)/2),top-8);
+  if(M.tIdx>0) g.fillText("T",x(M.tIdx),top-8);
+  const br=(a,b,lab,yy)=>{if(a<0||b<0)return;g.strokeStyle=th.ink;g.lineWidth=1;g.beginPath();
+    g.moveTo(x(a),yy-3);g.lineTo(x(a),yy);g.lineTo(x(b),yy);g.lineTo(x(b),yy-3);g.stroke();g.fillText(lab,(x(a)+x(b))/2,yy+11);};
+  br(M.pOn,M.on,"PR",bot+4);
+  if(M.tEnd>0) br(M.on,M.tEnd,"QT",bot+4+(M.pOn>0?0:0));
+}
+function rcTheme(){
+  return {bg:"rgb("+RGB.card+")",fine:"rgba("+RGB.bold+",.18)",bold:"rgba("+RGB.bold+",.45)",ink:"rgb("+RGB.ink+")",
+    faint:"rgba("+RGB.ink+",.14)",cal:"rgb("+RGB.cal+")",warn:"rgb("+RGB.warn+")",font:'600 11px "IBM Plex Mono", monospace'};
+}
+function rcDraw(){
+  const r=RC.res;if(!r||document.getElementById("rcRes").hidden) return;
+  for(const [cv,fn] of [[rcStripCv,rcPaintStrip],[rcBeatCv,rcPaintBeat]]){
+    const W=cv.clientWidth,H=cv.clientHeight;if(!W||!H) continue;
+    const g=cv.getContext("2d");fn(g,W,H,r,rcTheme());
+  }
+}
+document.getElementById("btnRc").addEventListener("click",()=>{ RC.rec?rcAbort():rcStart(); });
+document.getElementById("btnRcSave").addEventListener("click",()=>{
+  const r=RC.res;if(!r||!r.strip) return;
+  // always paper-white with a red grid, whatever the page theme: this is for a doctor
+  const W=1800,SH=780,BH=360,H=150+SH+BH+70,cv=document.createElement("canvas");cv.width=W;cv.height=H;
+  const g=cv.getContext("2d"),th={bg:"#fff",fine:"rgba(226,80,80,.22)",bold:"rgba(206,50,50,.55)",ink:"#111",faint:"rgba(0,0,0,.12)",
+    cal:"#1a7f74",warn:"#c0392b",font:'600 20px "IBM Plex Mono", monospace',lw:2};
+  g.fillStyle="#fff";g.fillRect(0,0,W,H);
+  g.fillStyle="#111";g.textAlign="left";g.font='600 40px "Barlow Condensed", sans-serif';
+  g.fillText("Axon rhythm check · "+r.title,40,60);
+  g.font='22px "IBM Plex Mono", monospace';g.fillStyle="#444";
+  const n=r.nums||{},f=v=>v==null||!isFinite(v)?"—":Math.round(v);
+  g.fillText(new Date(r.when).toLocaleString()+"  ·  single lead, 30 s, 25 mm/s equivalent  ·  HR "+f(n.hr)+" bpm  ·  PR "+f(n.pr)+
+    "  QRS "+f(n.qrs)+"  QT "+f(n.qt)+"  QTc(Fridericia) "+f(n.qtc)+" ms",40,104);
+  g.save();g.translate(40,140);rcPaintStrip(g,W-80,SH,r,th);g.restore();
+  g.save();g.translate(40,140+SH+30);rcPaintBeat(g,520,BH-30,r,th);g.restore();
+  g.fillStyle="#555";g.font='20px "IBM Plex Sans", sans-serif';
+  const notes=(r.find||[]).map(s=>s.replace(/<[^>]+>/g,""));
+  let yy=140+SH+60;
+  for(const line of notes.slice(0,6)){
+    const words=line.split(" ");let cur="";
+    for(const w of words){if(g.measureText(cur+w).width>W-700){g.fillText(cur,600,yy);yy+=28;cur="";}cur+=w+" ";}
+    g.fillText(cur,600,yy);yy+=36;if(yy>H-90) break;
+  }
+  g.fillStyle="#888";g.font='18px "IBM Plex Sans", sans-serif';
+  g.fillText("Made with Axon, a DIY biosignal recorder. Not a medical device and not a diagnosis.",40,H-28);
+  cv.toBlob(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);
+    a.download="axon-ecg-"+new Date(r.when).toISOString().slice(0,16).replace(/[:T]/g,"-")+".png";
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);},"image/png");
+});
+rcRenderPrev();
 
 /* ======================= neurofeedback ======================= */
 /* Relative alpha: power in 8-13 Hz over power in 2-30 Hz, each a one-second
@@ -5250,6 +5824,11 @@ function paintHero(){
   }
 
   if(m==="ecg"){
+    if(RC.rec){
+      const done=RC.n/RC_N;
+      setHero("Rhythm check",String(Math.ceil((RC_N-RC.n)/FS)),"s","recording · sit still, arms relaxed, don't talk",done,"idle");
+      return;
+    }
     const k=ecgMetrics();
     if(!k){ setHero("Heart rate","—","bpm","finding beats…",null,"idle"); return; }
     const parts=["RMSSD "+k.rmssd.toFixed(0)+" ms"];
